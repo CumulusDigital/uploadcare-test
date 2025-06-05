@@ -2,49 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Ad Upload Validator</title>
-
-    <!-- Uploadcare Uploader -->
-    <script type="module">
-      import * as UC from 'https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/file-uploader.min.js';
-      UC.defineComponents(UC);
+    <title>Validated Ad Upload</title>
+    <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
+    <script>
+      uploadcare.publicKey = 'a51c89007d0bce21876e';
     </script>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css"
-    />
-
     <style>
       body {
         font-family: sans-serif;
         padding: 2rem;
+        background: #f5f5f5;
       }
-
       .error {
         color: red;
-        margin-top: 1rem;
         font-weight: bold;
-      }
-
-      uc-file-uploader-regular {
         margin-top: 1rem;
+      }
+      .hidden {
+        display: none;
       }
     </style>
   </head>
   <body>
-    <h2>Upload Your Ad</h2>
+    <h2>Upload Your Ad (with dimension & file check)</h2>
 
-    <!-- Uploadcare Setup -->
-    <uc-config ctx-name="ad-uploader" pubkey="a51c89007d0bce21876e"></uc-config>
+    <input
+      type="hidden"
+      role="uploadcare-uploader"
+      data-crop="disabled"
+      data-images-only="true"
+      data-multiple="false"
+      id="uploader"
+    />
 
-    <!-- Uploader UI -->
-    <uc-file-uploader-regular ctx-name="ad-uploader"></uc-file-uploader-regular>
+    <div id="error-message" class="error hidden"></div>
 
-    <!-- Error Display -->
-    <div id="error-message" class="error"></div>
-
-    <!-- Validation Logic -->
-    <script type="module">
+    <script>
       const allowedDimensions = [
         [300, 250],
         [728, 90],
@@ -56,41 +49,38 @@
       const allowedFormats = ['image/png', 'image/jpeg', 'image/gif'];
       const maxFileSize = 500 * 1024; // 500 KB
 
-      const uploader = document.querySelector('uc-file-uploader-regular');
       const errorEl = document.getElementById('error-message');
+      const widget = uploadcare.Widget('#uploader');
 
-      uploader.addEventListener('change', async (event) => {
+      widget.onUploadComplete(async (fileInfo) => {
+        errorEl.classList.add('hidden');
         errorEl.textContent = '';
-        const file = event.detail.fileInfo;
 
         try {
-          const blob = await file.copyTo('https://ucarecdn.com/');
-          const fileInfo = await blob.promise();
-
-          // ✅ Check MIME type
-          if (!allowedFormats.includes(fileInfo.mimeType)) {
-            throw new Error('❌ Unsupported file type. Only JPG, PNG, and GIF are allowed.');
-          }
-
-          // ✅ Check file size
+          // File size check
           if (fileInfo.size > maxFileSize) {
             throw new Error('❌ File size exceeds 500 KB.');
           }
 
-          // ✅ Check image dimensions
+          // Format check
+          if (!allowedFormats.includes(fileInfo.mimeType)) {
+            throw new Error('❌ Unsupported file type. Only JPG, PNG, and GIF are allowed.');
+          }
+
+          // Dimension check
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.src = fileInfo.cdnUrl;
 
           await new Promise((resolve, reject) => {
             img.onload = () => {
-              const validSize = allowedDimensions.some(
+              const isValid = allowedDimensions.some(
                 ([w, h]) => img.width === w && img.height === h
               );
-              if (!validSize) {
+              if (!isValid) {
                 reject(
                   new Error(
-                    `❌ Invalid dimensions: ${img.width}x${img.height}. Allowed sizes are: ${allowedDimensions
+                    `❌ Invalid dimensions: ${img.width}x${img.height}. Allowed: ${allowedDimensions
                       .map(([w, h]) => `${w}x${h}`)
                       .join(', ')}.`
                   )
@@ -99,13 +89,14 @@
                 resolve();
               }
             };
-            img.onerror = () => {
-              reject(new Error('❌ Failed to load image for dimension check.'));
-            };
+            img.onerror = () => reject(new Error('❌ Could not load image for dimension check.'));
           });
+
+          alert('✅ File validated and ready!');
         } catch (err) {
           errorEl.textContent = err.message;
-          uploader.value = ''; // Reset uploader
+          errorEl.classList.remove('hidden');
+          widget.value(null); // reset uploader
         }
       });
     </script>
