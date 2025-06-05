@@ -1,28 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Validated Ad Upload</title>
-    <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
-    <script>
-      uploadcare.publicKey = 'a51c89007d0bce21876e';
-    </script>
-    <style>
-      body {
-        font-family: sans-serif;
-        padding: 2rem;
-        background: #f5f5f5;
-      }
-      .error {
-        color: red;
-        font-weight: bold;
-        margin-top: 1rem;
-      }
-      .hidden {
-        display: none;
-      }
-    </style>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <title>Validated Ad Upload</title>
+
+  <!-- Uploadcare public key -->
+  <script>
+    UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
+  </script>
+
+  <!-- Uploadcare widget -->
+  <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
   <body>
     <h2>Upload Your Ad (with dimension & file check)</h2>
 
