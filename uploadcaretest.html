@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Uploadcare Ad Uploader</title>
+    <title>Ad Upload Validator</title>
 
-    <!-- Load Uploadcare widget -->
+    <!-- Uploadcare Widget -->
     <script src="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/file-uploader-regular.min.js"></script>
     <link
       rel="stylesheet"
@@ -15,7 +15,6 @@
       body {
         font-family: sans-serif;
         padding: 2rem;
-        margin: 0;
       }
       .error {
         color: red;
@@ -30,12 +29,25 @@
     <!-- Uploadcare Config -->
     <uc-config ctx-name="ad-uploader" pubkey="a51c89007d0bce21876e"></uc-config>
 
-    <!-- Upload Button Component -->
+    <!-- File Upload Element -->
     <uc-file-uploader-regular ctx-name="ad-uploader"></uc-file-uploader-regular>
 
-    <!-- Error Message Display -->
     <div id="error-message" class="error"></div>
 
+    <!-- Initialize Custom Elements -->
+    <script>
+      // Define components manually
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.UploadcareFileUploaderRegular) {
+          UploadcareFileUploaderRegular.defineCustomElements();
+        } else {
+          document.getElementById('error-message').textContent =
+            'Uploadcare script failed to load.';
+        }
+      });
+    </script>
+
+    <!-- Your Validation Script -->
     <script>
       const allowedDimensions = [
         [300, 250],
@@ -49,50 +61,39 @@
       const maxFileSize = 500 * 1024;
 
       const errorEl = document.getElementById('error-message');
-      const uploader = document.querySelector('uc-file-uploader-regular');
 
-      uploader.addEventListener('change', async (event) => {
-        errorEl.textContent = '';
-        const file = event.detail.fileInfo;
+      document.addEventListener('DOMContentLoaded', () => {
+        const uploader = document.querySelector('uc-file-uploader-regular');
 
-        try {
-          const blob = await file.copyTo('https://ucarecdn.com/');
-          const fileInfo = await blob.promise();
+        if (!uploader) return;
 
-          if (!allowedFormats.includes(fileInfo.mimeType)) {
-            throw new Error('❌ Unsupported file format. Use JPG, PNG, or GIF.');
-          }
+        uploader.addEventListener('change', async (event) => {
+          errorEl.textContent = '';
+          const file = event.detail.fileInfo;
 
-          if (fileInfo.size > maxFileSize) {
-            throw new Error('❌ File size exceeds 500 KB.');
-          }
+          try {
+            const blob = await file.copyTo('https://ucarecdn.com/');
+            const fileInfo = await blob.promise();
 
-          const img = new Image();
-          img.src = fileInfo.cdnUrl;
+            if (!allowedFormats.includes(fileInfo.mimeType)) {
+              throw new Error('❌ Unsupported format. Use JPG, PNG, or GIF.');
+            }
 
-          await new Promise((resolve, reject) => {
-            img.onload = () => {
-              const valid = allowedDimensions.some(
-                ([w, h]) => img.width === w && img.height === h
-              );
-              valid
-                ? resolve()
-                : reject(
-                    new Error(
-                      `❌ Incorrect dimensions: ${img.width}x${img.height}. Allowed: ${allowedDimensions
-                        .map(([w, h]) => `${w}x${h}`)
-                        .join(', ')}.`
-                    )
-                  );
-            };
-            img.onerror = () =>
-              reject(new Error('❌ Failed to load image for dimension check.'));
-          });
-        } catch (err) {
-          errorEl.textContent = err.message;
-          uploader.value = '';
-        }
-      });
-    </script>
-  </body>
-</html>
+            if (fileInfo.size > maxFileSize) {
+              throw new Error('❌ File exceeds 500 KB.');
+            }
+
+            const img = new Image();
+            img.src = fileInfo.cdnUrl;
+
+            await new Promise((resolve, reject) => {
+              img.onload = () => {
+                const valid = allowedDimensions.some(
+                  ([w, h]) => img.width === w && img.height === h
+                );
+                valid
+                  ? resolve()
+                  : reject(
+                      new Error(
+                        `❌ Dimensions ${img.width}x${img.height} are invalid. Allowed: ${allowedDimensions
+                          .map(([w, h])
