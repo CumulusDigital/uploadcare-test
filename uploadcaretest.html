@@ -1,99 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Ad Upload Validator</title>
-
-    <!-- Uploadcare Widget -->
-    <script src="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/file-uploader-regular.min.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css"
-    />
-
-    <style>
-      body {
-        font-family: sans-serif;
-        padding: 2rem;
-      }
-      .error {
-        color: red;
-        margin-top: 1rem;
-        font-weight: bold;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>Upload Your Ad</h2>
-
-    <!-- Uploadcare Config -->
-    <uc-config ctx-name="ad-uploader" pubkey="a51c89007d0bce21876e"></uc-config>
-
-    <!-- File Upload Element -->
-    <uc-file-uploader-regular ctx-name="ad-uploader"></uc-file-uploader-regular>
-
-    <div id="error-message" class="error"></div>
-
-    <!-- Initialize Custom Elements -->
-    <script>
-      // Define components manually
-      window.addEventListener('DOMContentLoaded', () => {
-        if (window.UploadcareFileUploaderRegular) {
-          UploadcareFileUploaderRegular.defineCustomElements();
-        } else {
-          document.getElementById('error-message').textContent =
-            'Uploadcare script failed to load.';
-        }
-      });
-    </script>
-
-    <!-- Your Validation Script -->
-    <script>
-      const allowedDimensions = [
-        [300, 250],
-        [728, 90],
-        [300, 600],
-        [160, 600],
-        [320, 50],
-        [320, 480],
-      ];
-      const allowedFormats = ['image/png', 'image/jpeg', 'image/gif'];
-      const maxFileSize = 500 * 1024;
-
-      const errorEl = document.getElementById('error-message');
-
-      document.addEventListener('DOMContentLoaded', () => {
-        const uploader = document.querySelector('uc-file-uploader-regular');
-
-        if (!uploader) return;
-
-        uploader.addEventListener('change', async (event) => {
-          errorEl.textContent = '';
-          const file = event.detail.fileInfo;
-
-          try {
-            const blob = await file.copyTo('https://ucarecdn.com/');
-            const fileInfo = await blob.promise();
-
-            if (!allowedFormats.includes(fileInfo.mimeType)) {
-              throw new Error('❌ Unsupported format. Use JPG, PNG, or GIF.');
-            }
-
-            if (fileInfo.size > maxFileSize) {
-              throw new Error('❌ File exceeds 500 KB.');
-            }
-
-            const img = new Image();
-            img.src = fileInfo.cdnUrl;
-
-            await new Promise((resolve, reject) => {
-              img.onload = () => {
-                const valid = allowedDimensions.some(
-                  ([w, h]) => img.width === w && img.height === h
-                );
-                valid
-                  ? resolve()
-                  : reject(
-                      new Error(
-                        `❌ Dimensions ${img.width}x${img.height} are invalid. Allowed: ${allowedDimensions
-                          .map(([w, h])
+<head>
+  <meta charset="UTF-8" />
+  <title>Uploadcare Ad Uploader</title>
+  <script type="module">
+    import * as UC from 'https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/file-uploader.min.js';
+    UC.defineComponents(UC);
+  </script>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css"
+  />
+</head>
+<body>
+  <h1>Upload Your Ad</h1>
+  <uc-config ctx-name="ad-uploader" pubkey="a51c89007d0bce21876e"></uc-config>
+  <uc-file-uploader-regular ctx-name="ad-uploader"></uc-file-uploader-regular>
+</body>
+</html>
