@@ -44,68 +44,62 @@
     <div id="error-message" class="error"></div>
 
     <!-- Validation Logic -->
-    <script type="module">
-      const allowedDimensions = [
-        [300, 250],
-        [728, 90],
-        [300, 600],
-        [160, 600],
-        [320, 50],
-        [320, 480],
-      ];
-      const allowedFormats = ['image/png', 'image/jpeg', 'image/gif'];
-      const maxFileSize = 500 * 1024; // 500 KB
+<script type="module">
+  const allowedDimensions = [
+    [300, 250],
+    [728, 90],
+    [300, 600],
+    [160, 600],
+    [320, 50],
+    [320, 480],
+  ];
+  const allowedFormats = ['image/png', 'image/jpeg', 'image/gif'];
+  const maxFileSize = 500 * 1024; // 500 KB
 
-      const uploader = document.querySelector('uc-file-uploader-regular');
-      const errorEl = document.getElementById('error-message');
+  const uploader = document.querySelector('uc-file-uploader-regular');
+  const errorEl = document.getElementById('error-message');
 
-      uploader.addEventListener('change', async (event) => {
-        errorEl.textContent = '';
-        const file = event.detail.fileInfo;
+  uploader.addEventListener('change', async (event) => {
+    errorEl.textContent = '';
+    const file = event.detail.fileInfo;
 
-        try {
-          const blob = await file.copyTo('https://ucarecdn.com/');
-          const fileInfo = await blob.promise();
+    try {
+      const blob = await file.copyTo('https://ucarecdn.com/');
+      const fileInfo = await blob.promise();
 
-          // ✅ Check file format
-          if (!allowedFormats.includes(fileInfo.mimeType)) {
-            throw new Error('❌ Unsupported file type. Only JPG, PNG, and GIF are allowed.');
-          }
+      if (!allowedFormats.includes(fileInfo.mimeType)) {
+        throw new Error('❌ Unsupported file type. Only JPG, PNG, and GIF are allowed.');
+      }
 
-          // ✅ Check file size
-          if (fileInfo.size > maxFileSize) {
-            throw new Error('❌ File size exceeds 500 KB.');
-          }
+      if (fileInfo.size > maxFileSize) {
+        throw new Error('❌ File size exceeds 500 KB.');
+      }
 
-          // ✅ Check dimensions
-          const img = new Image();
-          img.src = fileInfo.cdnUrl;
-
-          await new Promise((resolve, reject) => {
-            img.onload = () => {
-              const matches = allowedDimensions.some(
-                ([w, h]) => img.width === w && img.height === h
-              );
-              if (!matches) {
-                reject(
-                  new Error(
-                    `❌ Invalid dimensions: ${img.width}x${img.height}. Allowed sizes: ${allowedDimensions
-                      .map(([w, h]) => `${w}x${h}`)
-                      .join(', ')}.`
-                  )
-                );
-              } else {
-                resolve();
-              }
-            };
-            img.onerror = () =>
-              reject(new Error('❌ Could not load image to check dimensions.'));
-          });
-        } catch (err) {
-          errorEl.textContent = err.message;
-          uploader.value = ''; // Clear upload so user can try again
-        }
+      // STRICT dimension check
+      const imageLoaded = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = fileInfo.cdnUrl;
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('❌ Failed to load image for dimension check.'));
       });
-    </script>
+
+      const isAllowedSize = allowedDimensions.some(
+        ([w, h]) => imageLoaded.width === w && imageLoaded.height === h
+      );
+
+      if (!isAllowedSize) {
+        throw new Error(
+          `❌ Incorrect image dimensions: ${imageLoaded.width}x${imageLoaded.height}. Allowed sizes: ${allowedDimensions
+            .map(([w, h]) => `${w}x${h}`)
+            .join(', ')}.`
+        );
+      }
+
+    } catch (err) {
+      errorEl.textContent = err.message;
+      uploader.value = ''; // reset
+    }
+  });
+</script>
   </body>
 </html>
