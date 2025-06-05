@@ -2,16 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Ad Upload Validator</title>
+    <title>Uploadcare Ad Uploader</title>
+
+    <!-- Load Uploadcare widget -->
     <script src="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/file-uploader-regular.min.js"></script>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css"
     />
+
     <style>
       body {
         font-family: sans-serif;
-        padding: 1rem;
+        padding: 2rem;
         margin: 0;
       }
       .error {
@@ -22,10 +25,15 @@
     </style>
   </head>
   <body>
-    <h3>Upload Your Ad</h3>
+    <h2>Upload Your Ad</h2>
 
+    <!-- Uploadcare Config -->
     <uc-config ctx-name="ad-uploader" pubkey="a51c89007d0bce21876e"></uc-config>
+
+    <!-- Upload Button Component -->
     <uc-file-uploader-regular ctx-name="ad-uploader"></uc-file-uploader-regular>
+
+    <!-- Error Message Display -->
     <div id="error-message" class="error"></div>
 
     <script>
@@ -38,7 +46,8 @@
         [320, 480],
       ];
       const allowedFormats = ['image/png', 'image/jpeg', 'image/gif'];
-      const maxFileSize = 500 * 1024; // 500 KB
+      const maxFileSize = 500 * 1024;
+
       const errorEl = document.getElementById('error-message');
       const uploader = document.querySelector('uc-file-uploader-regular');
 
@@ -60,28 +69,28 @@
 
           const img = new Image();
           img.src = fileInfo.cdnUrl;
+
           await new Promise((resolve, reject) => {
             img.onload = () => {
-              const isValidSize = allowedDimensions.some(
+              const valid = allowedDimensions.some(
                 ([w, h]) => img.width === w && img.height === h
               );
-              if (!isValidSize) {
-                reject(
-                  new Error(
-                    `❌ Incorrect dimensions: ${img.width}x${img.height}. Allowed sizes: ${allowedDimensions
-                      .map(([w, h]) => `${w}x${h}`)
-                      .join(', ')}.`
-                  )
-                );
-              } else {
-                resolve();
-              }
+              valid
+                ? resolve()
+                : reject(
+                    new Error(
+                      `❌ Incorrect dimensions: ${img.width}x${img.height}. Allowed: ${allowedDimensions
+                        .map(([w, h]) => `${w}x${h}`)
+                        .join(', ')}.`
+                    )
+                  );
             };
-            img.onerror = () => reject(new Error('❌ Could not load image for dimension check.'));
+            img.onerror = () =>
+              reject(new Error('❌ Failed to load image for dimension check.'));
           });
         } catch (err) {
           errorEl.textContent = err.message;
-          uploader.value = ''; // reset uploader
+          uploader.value = '';
         }
       });
     </script>
