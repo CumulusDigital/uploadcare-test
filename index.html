@@ -28,105 +28,74 @@
     }
   </style>
 </head>
+
 <body>
-  <!-- Your page content here -->
-</body>
-</html>
-  <!-- Uploadcare widget -->
-  <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
+  <h2>Upload Your Ad (with dimension & file check)</h2>
 
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 2rem;
-      background: #f5f5f5;
-    }
-    .error {
-      color: red;
-      font-weight: bold;
-      margin-top: 1rem;
-    }
-    .hidden {
-      display: none;
-    }
-  </style>
-</head>
-  <body>
-    <h2>Upload Your Ad (with dimension & file check)</h2>
+  <input
+    type="hidden"
+    role="uploadcare-uploader"
+    data-crop="disabled"
+    data-images-only="true"
+    data-multiple="false"
+    id="uploader"
+  />
 
-    <input
-      type="hidden"
-      role="uploadcare-uploader"
-      data-crop="disabled"
-      data-images-only="true"
-      data-multiple="false"
-      id="uploader"
-    />
+  <div id="error-message" class="error hidden"></div>
 
-    <div id="error-message" class="error hidden"></div>
+  <script>
+    const allowedDimensions = [
+      [300, 250],
+      [728, 90],
+      [300, 600],
+      [160, 600],
+      [320, 50],
+      [320, 480],
+    ];
+    const allowedFormats = ['image/png', 'image/jpeg', 'image/gif'];
+    const maxFileSize = 500 * 1024; // 500 KB
 
-    <script>
-      const allowedDimensions = [
-        [300, 250],
-        [728, 90],
-        [300, 600],
-        [160, 600],
-        [320, 50],
-        [320, 480],
-      ];
-      const allowedFormats = ['image/png', 'image/jpeg', 'image/gif'];
-      const maxFileSize = 500 * 1024; // 500 KB
+    const errorEl = document.getElementById('error-message');
+    const widget = uploadcare.Widget('#uploader');
 
-      const errorEl = document.getElementById('error-message');
-      const widget = uploadcare.Widget('#uploader');
+    widget.onUploadComplete(async (fileInfo) => {
+      errorEl.classList.add('hidden');
+      errorEl.textContent = '';
 
-      widget.onUploadComplete(async (fileInfo) => {
-        errorEl.classList.add('hidden');
-        errorEl.textContent = '';
-
-        try {
-          // File size check
-          if (fileInfo.size > maxFileSize) {
-            throw new Error('❌ File size exceeds 500 KB.');
-          }
-
-          // Format check
-          if (!allowedFormats.includes(fileInfo.mimeType)) {
-            throw new Error('❌ Unsupported file type. Only JPG, PNG, and GIF are allowed.');
-          }
-
-          // Dimension check
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.src = fileInfo.cdnUrl;
-
-          await new Promise((resolve, reject) => {
-            img.onload = () => {
-              const isValid = allowedDimensions.some(
-                ([w, h]) => img.width === w && img.height === h
-              );
-              if (!isValid) {
-                reject(
-                  new Error(
-                    `❌ Invalid dimensions: ${img.width}x${img.height}. Allowed: ${allowedDimensions
-                      .map(([w, h]) => `${w}x${h}`)
-                      .join(', ')}.`
-                  )
-                );
-              } else {
-                resolve();
-              }
-            };
-            img.onerror = () => reject(new Error('❌ Could not load image for dimension check.'));
-          });
-
-          alert('✅ File validated and ready!');
-        } catch (err) {
-          errorEl.textContent = err.message;
-          errorEl.classList.remove('hidden');
-          widget.value(null); // reset uploader
+      try {
+        if (fileInfo.size > maxFileSize) {
+          throw new Error('❌ File size exceeds 500 KB.');
         }
-      });
-    </script>
-  </body>
+
+        if (!allowedFormats.includes(fileInfo.mimeType)) {
+          throw new Error('❌ Unsupported file type. Only JPG, PNG, and GIF are allowed.');
+        }
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = fileInfo.cdnUrl;
+
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            const isValid = allowedDimensions.some(
+              ([w, h]) => img.width === w && img.height === h
+            );
+            if (!isValid) {
+              reject(new Error(`❌ Invalid dimensions: ${img.width}x${img.height}. Allowed: ${allowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}.`));
+            } else {
+              resolve();
+            }
+          };
+          img.onerror = () => reject(new Error('❌ Could not load image for dimension check.'));
+        });
+
+        alert('✅ File validated and ready!');
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+        widget.value(null); // Reset uploader
+      }
+    });
+  </script>
+</body>
 </html>
