@@ -16,6 +16,9 @@
       font-family: 'Inter', sans-serif;
       padding: 2rem;
       background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     #upload-btn {
       padding: 10px 20px;
@@ -25,6 +28,7 @@
       border-radius: 6px;
       cursor: pointer;
       font-size: 16px;
+      margin-bottom: 1.5rem;
     }
     .file-result {
       background: white;
@@ -37,9 +41,11 @@
       gap: 1rem;
       border-left: 4px solid transparent;
       position: relative;
+      width: 400px;
     }
     .file-result.success {
       border-left-color: green;
+      color: black;
     }
     .file-result.error {
       border-left-color: red;
@@ -73,12 +79,17 @@
     .allowed-sizes {
       color: green;
       font-weight: 600;
-      margin-top: 0.5rem;
+      margin-top: 1rem;
+      max-width: 400px;
+      text-align: center;
     }
-    .file-list {
-      margin-top: 1.5rem;
+    #file-results {
+      width: 420px;
       max-height: 400px;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
   </style>
 </head>
@@ -86,7 +97,7 @@
 
   <button id="upload-btn">Upload Ads</button>
 
-  <div id="file-results" class="file-list"></div>
+  <div id="file-results"></div>
 
   <div class="allowed-sizes">
     Allowed sizes: 300x250, 728x90, 300x600, 160x600, 320x50, 320x480, 336x280, 768x1024, 848x480, 1200x1200, 900x1600
@@ -110,7 +121,7 @@
     const uploadBtn = document.getElementById('upload-btn');
     const resultsContainer = document.getElementById('file-results');
 
-    // Helper to create remove button
+    // Create remove button helper
     function createRemoveBtn() {
       const btn = document.createElement('button');
       btn.textContent = '×';
@@ -124,7 +135,6 @@
         multiple: true,
         multipleMax: 20,
         tabs: 'file',
-        // Restrict to local files only:
         inputAcceptTypes: 'image/gif,image/jpeg,image/png,application/zip'
       });
 
