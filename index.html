@@ -4,12 +4,10 @@
   <meta charset="UTF-8" />
   <title>Validated Ad Upload</title>
 
-  <!-- Set Uploadcare public key -->
   <script>
     UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
   </script>
 
-  <!-- Uploadcare widget -->
   <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
 
   <style>
@@ -30,13 +28,10 @@
 </head>
 
 <body>
-  <h2>Upload Your Ad (with dimension & file check)</h2>
-
   <input
     type="hidden"
     role="uploadcare-uploader"
     data-crop="disabled"
-    data-images-only="true"
     data-multiple="false"
     id="uploader"
   />
@@ -44,16 +39,30 @@
   <div id="error-message" class="error hidden"></div>
 
   <script>
-    const allowedDimensions = [
+    const requiredDimensions = [
       [300, 250],
       [728, 90],
       [300, 600],
       [160, 600],
       [320, 50],
-      [320, 480],
+      [320, 480]
     ];
-    const allowedFormats = ['image/png', 'image/jpeg', 'image/gif'];
-    const maxFileSize = 500 * 1024; // 500 KB
+
+    const allowedAdditionalDimensions = [
+      [336, 280],
+      [768, 1024],
+      [848, 480],
+      [1200, 1200],
+      [900, 1600]
+    ];
+
+    const allAllowedDimensions = [...requiredDimensions, ...allowedAdditionalDimensions];
+
+    const imageMimeTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    const zipMimeType = 'application/zip';
+
+    const maxSizeImage = 500 * 1024; // 500 KB
+    const maxSizeZip = 1024 * 1024;  // 1 MB
 
     const errorEl = document.getElementById('error-message');
     const widget = uploadcare.Widget('#uploader');
@@ -63,33 +72,45 @@
       errorEl.textContent = '';
 
       try {
-        if (fileInfo.size > maxFileSize) {
-          throw new Error('❌ File size exceeds 500 KB.');
+        const mimeType = fileInfo.mimeType;
+
+        // File size check based on file type
+        if (imageMimeTypes.includes(mimeType)) {
+          if (fileInfo.size > maxSizeImage) {
+            throw new Error(`❌ Image is ${Math.round(fileInfo.size / 1024)} KB. Max allowed: 500 KB.`);
+          }
+        } else if (mimeType === zipMimeType) {
+          if (fileInfo.size > maxSizeZip) {
+            throw new Error(`❌ ZIP file is ${Math.round(fileInfo.size / 1024)} KB. Max allowed: 1 MB.`);
+          }
+          alert('✅ HTML5 ZIP file uploaded and validated!');
+          return;
+        } else {
+          throw new Error('❌ Unsupported file type. Allowed: JPG, PNG, GIF, or ZIP.');
         }
 
-        if (!allowedFormats.includes(fileInfo.mimeType)) {
-          throw new Error('❌ Unsupported file type. Only JPG, PNG, and GIF are allowed.');
-        }
-
+        // If image, validate dimensions
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.src = fileInfo.cdnUrl;
 
         await new Promise((resolve, reject) => {
           img.onload = () => {
-            const isValid = allowedDimensions.some(
+            const matches = allAllowedDimensions.some(
               ([w, h]) => img.width === w && img.height === h
             );
-            if (!isValid) {
-              reject(new Error(`❌ Invalid dimensions: ${img.width}x${img.height}. Allowed: ${allowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}.`));
+            if (!matches) {
+              reject(new Error(
+                `❌ Uploaded image is ${img.width}x${img.height}. Allowed sizes: ${allAllowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}.`
+              ));
             } else {
               resolve();
             }
           };
-          img.onerror = () => reject(new Error('❌ Could not load image for dimension check.'));
+          img.onerror = () => reject(new Error('❌ Could not load image for dimension validation.'));
         });
 
-        alert('✅ File validated and ready!');
+        alert('✅ Image file uploaded and validated!');
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
