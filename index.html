@@ -2,86 +2,84 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Ad Upload with Persistent Preview + Remove</title>
+  <title>File Upload</title>
 
   <script>
     UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
   </script>
   <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
-
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      padding: 2rem;
       background: #ffffff;
+      padding: 2rem;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
+
     #upload-btn {
-      padding: 10px 20px;
+      padding: 12px 24px;
+      font-size: 16px;
       background: #0073e6;
       color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 16px;
-      margin-bottom: 1.5rem;
-      max-width: 700px;
       width: 100%;
+      max-width: 720px;
+      margin-bottom: 1.5rem;
     }
+
     #file-results {
       width: 100%;
-      max-width: 700px;
-      max-height: 500px;
-      overflow-y: auto;
+      max-width: 720px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      border: 1px solid #ddd;
-      padding: 1rem;
-      border-radius: 8px;
-      background: #fafafa;
-      box-sizing: border-box;
+      gap: 12px;
     }
+
     .file-result {
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
       display: flex;
+      flex-direction: row;
       align-items: center;
-      gap: 1rem;
+      justify-content: space-between;
+      padding: 1rem;
+      border-radius: 6px;
+      background: #f9f9f9;
       border-left: 4px solid transparent;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
       position: relative;
-      width: 95%;
-      box-sizing: border-box;
     }
+
     .file-result.success {
-      border-left-color: green;
-      color: black;
+      border-left-color: #28a745;
     }
+
     .file-result.error {
-      border-left-color: red;
-      color: #d32f2f;
+      border-left-color: #dc3545;
+      color: #b30000;
     }
+
     .file-preview img {
-      max-width: 100px;
-      max-height: 100px;
+      max-height: 80px;
+      max-width: 120px;
       object-fit: contain;
       border: 1px solid #ccc;
       border-radius: 4px;
+      background: white;
+      padding: 4px;
     }
+
     .file-details {
-      flex: 1;
+      flex-grow: 1;
+      padding: 0 1rem;
+      font-size: 14px;
     }
+
     .remove-btn {
-      position: absolute;
-      top: 6px;
-      right: 6px;
       background: #ff4c4c;
       border: none;
       color: white;
@@ -92,32 +90,34 @@
       cursor: pointer;
       line-height: 20px;
       font-size: 16px;
+      position: absolute;
+      top: 6px;
+      right: 6px;
     }
   </style>
 </head>
 <body>
 
-  <button id="upload-btn">Upload Ads</button>
+  <button id="upload-btn">File Upload</button>
 
   <div id="file-results"></div>
 
   <script>
     const requiredDimensions = [
-      [300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]
+      [300, 250], [728, 90], [300, 600], [160, 600],
+      [320, 50], [320, 480]
     ];
-    const allowedAdditionalDimensions = [
+    const additionalDimensions = [
       [336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]
     ];
-    const allAllowedDimensions = [...requiredDimensions, ...allowedAdditionalDimensions];
-
-    const imageMimeTypes = ['image/png', 'image/jpeg', 'image/gif'];
-    const zipMimeType = 'application/zip';
-
-    const maxSizeImage = 500 * 1024; // 500 KB
-    const maxSizeZip = 1024 * 1024;  // 1 MB
+    const allowedDimensions = [...requiredDimensions, ...additionalDimensions];
+    const imageTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    const zipType = 'application/zip';
+    const maxImageSize = 500 * 1024;
+    const maxZipSize = 1024 * 1024;
 
     const uploadBtn = document.getElementById('upload-btn');
-    const resultsContainer = document.getElementById('file-results');
+    const results = document.getElementById('file-results');
 
     function createRemoveBtn() {
       const btn = document.createElement('button');
@@ -130,9 +130,9 @@
     uploadBtn.addEventListener('click', () => {
       const dialog = uploadcare.openDialog(null, {
         multiple: true,
-        multipleMax: 20,
+        multipleMax: 50,
         tabs: 'file',
-        inputAcceptTypes: 'image/gif,image/jpeg,image/png,application/zip'
+        inputAcceptTypes: 'image/png,image/jpeg,image/gif,application/zip'
       });
 
       dialog.done(async (filesPromise) => {
@@ -144,25 +144,23 @@
           const mimeType = fileInfo.mimeType;
           const sizeKB = Math.round(fileInfo.size / 1024);
 
-          const resultEl = document.createElement('div');
-          resultEl.classList.add('file-result');
+          const resultDiv = document.createElement('div');
+          resultDiv.classList.add('file-result');
 
-          const previewEl = document.createElement('div');
-          previewEl.className = 'file-preview';
+          const previewDiv = document.createElement('div');
+          previewDiv.className = 'file-preview';
 
-          const detailsEl = document.createElement('div');
-          detailsEl.className = 'file-details';
+          const detailsDiv = document.createElement('div');
+          detailsDiv.className = 'file-details';
 
           const removeBtn = createRemoveBtn();
-          removeBtn.onclick = () => {
-            resultsContainer.removeChild(resultEl);
-          };
-          resultEl.appendChild(removeBtn);
+          removeBtn.onclick = () => results.removeChild(resultDiv);
+          resultDiv.appendChild(removeBtn);
 
           try {
-            if (imageMimeTypes.includes(mimeType)) {
-              if (fileInfo.size > maxSizeImage) {
-                throw new Error(`Too large (${sizeKB} KB). Max: 500 KB.`);
+            if (imageTypes.includes(mimeType)) {
+              if (fileInfo.size > maxImageSize) {
+                throw new Error(`Too large (${sizeKB} KB). Max is 500 KB.`);
               }
 
               const img = new Image();
@@ -171,46 +169,42 @@
 
               await new Promise((resolve, reject) => {
                 img.onload = () => {
-                  const matches = allAllowedDimensions.some(
-                    ([w, h]) => img.width === w && img.height === h
-                  );
+                  const matches = allowedDimensions.some(([w, h]) => img.width === w && img.height === h);
                   if (!matches) {
-                    reject(new Error(`Wrong dimensions: ${img.width}x${img.height}.`));
+                    reject(new Error(`Incorrect size: ${img.width}x${img.height}`));
                   } else {
-                    previewEl.appendChild(img);
+                    previewDiv.appendChild(img);
                     resolve();
                   }
                 };
-                img.onerror = () => reject(new Error(`Could not check dimensions.`));
+                img.onerror = () => reject(new Error(`Could not verify dimensions.`));
               });
 
-              resultEl.classList.add('success');
-              detailsEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB)<br>✅ Valid image.`;
-
-            } else if (mimeType === zipMimeType) {
-              if (fileInfo.size > maxSizeZip) {
-                throw new Error(`Too large (${sizeKB} KB). Max ZIP: 1 MB.`);
+              resultDiv.classList.add('success');
+              detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
+            } else if (mimeType === zipType) {
+              if (fileInfo.size > maxZipSize) {
+                throw new Error(`ZIP too large (${sizeKB} KB). Max 1 MB.`);
               }
 
-              resultEl.classList.add('success');
-              detailsEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB)<br>✅ Valid HTML5 ZIP.`;
-
+              resultDiv.classList.add('success');
+              detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid HTML5 ZIP (${sizeKB} KB)`;
             } else {
               throw new Error(`Unsupported file type.`);
             }
           } catch (err) {
-            resultEl.classList.add('error');
-            detailsEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB)<br>❌ ${err.message}`;
+            resultDiv.classList.add('error');
+            detailsDiv.innerHTML = `<strong>${fileName}</strong><br>❌ ${err.message}`;
           }
 
-          resultEl.appendChild(previewEl);
-          resultEl.appendChild(detailsEl);
+          resultDiv.appendChild(previewDiv);
+          resultDiv.appendChild(detailsDiv);
 
-          // Insert error previews at top, success previews at bottom
-          if (resultEl.classList.contains('error')) {
-            resultsContainer.insertBefore(resultEl, resultsContainer.firstChild);
+          // Place error files at the top
+          if (resultDiv.classList.contains('error')) {
+            results.insertBefore(resultDiv, results.firstChild);
           } else {
-            resultsContainer.appendChild(resultEl);
+            results.appendChild(resultDiv);
           }
         }
       });
