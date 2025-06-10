@@ -15,14 +15,7 @@
       padding: 2rem;
       background: #f5f5f5;
     }
-    .error {
-      color: red;
-      font-weight: bold;
-      margin-top: 1rem;
-    }
-    .hidden {
-      display: none;
-    }
+
     #upload-btn {
       padding: 10px 20px;
       background: #0073e6;
@@ -31,12 +24,34 @@
       border-radius: 5px;
       cursor: pointer;
     }
+
+    .file-result {
+      background: white;
+      padding: 1rem;
+      margin-top: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .file-result.success {
+      border-left: 4px solid green;
+    }
+
+    .file-result.error {
+      border-left: 4px solid red;
+      color: red;
+    }
+
+    .file-list {
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
 
   <button id="upload-btn">Upload Ads</button>
-  <div id="error-message" class="error hidden"></div>
+
+  <div id="file-results" class="file-list"></div>
 
   <script>
     const requiredDimensions = [
@@ -46,34 +61,40 @@
       [336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]
     ];
     const allAllowedDimensions = [...requiredDimensions, ...allowedAdditionalDimensions];
+
     const imageMimeTypes = ['image/png', 'image/jpeg', 'image/gif'];
     const zipMimeType = 'application/zip';
+
     const maxSizeImage = 500 * 1024; // 500 KB
     const maxSizeZip = 1024 * 1024;  // 1 MB
 
-    const errorEl = document.getElementById('error-message');
     const uploadBtn = document.getElementById('upload-btn');
+    const resultsContainer = document.getElementById('file-results');
 
     uploadBtn.addEventListener('click', () => {
       const dialog = uploadcare.openDialog(null, {
         multiple: true,
-        multipleMax: 50,
-        tabs: 'file', // local files only
+        multipleMax: 10,
+        tabs: 'file' // restrict to local files
       });
 
       dialog.done(async (filesPromise) => {
         const files = await filesPromise.files();
-        const errors = [];
+        resultsContainer.innerHTML = ''; // Clear previous results
 
         for (const filePromise of files) {
           const fileInfo = await filePromise;
+          const fileName = fileInfo.name;
           const mimeType = fileInfo.mimeType;
           const sizeKB = Math.round(fileInfo.size / 1024);
+
+          const resultEl = document.createElement('div');
+          resultEl.classList.add('file-result');
 
           try {
             if (imageMimeTypes.includes(mimeType)) {
               if (fileInfo.size > maxSizeImage) {
-                throw new Error(`❌ "${fileInfo.name}" is ${sizeKB} KB. Max allowed for images: 500 KB.`);
+                throw new Error(`Too large (${sizeKB} KB). Max: 500 KB.`);
               }
 
               const img = new Image();
@@ -86,33 +107,33 @@
                     ([w, h]) => img.width === w && img.height === h
                   );
                   if (!matches) {
-                    reject(new Error(`❌ "${fileInfo.name}" is ${img.width}x${img.height}. Allowed: ${allAllowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}.`));
+                    reject(new Error(`Wrong dimensions: ${img.width}x${img.height}. Allowed: ${allAllowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}`));
                   } else {
                     resolve();
                   }
                 };
-                img.onerror = () => reject(new Error(`❌ Could not load "${fileInfo.name}" for dimension check.`));
+                img.onerror = () => reject(new Error(`Could not check dimensions.`));
               });
+
+              resultEl.classList.add('success');
+              resultEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB) — ✅ Valid image.`;
 
             } else if (mimeType === zipMimeType) {
               if (fileInfo.size > maxSizeZip) {
-                throw new Error(`❌ "${fileInfo.name}" is ${sizeKB} KB. Max allowed for ZIPs: 1 MB.`);
+                throw new Error(`Too large (${sizeKB} KB). Max ZIP: 1 MB.`);
               }
+
+              resultEl.classList.add('success');
+              resultEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB) — ✅ Valid HTML5 ZIP.`;
             } else {
-              throw new Error(`❌ "${fileInfo.name}" is not a supported file type.`);
+              throw new Error(`Unsupported file type.`);
             }
           } catch (err) {
-            errors.push(err.message);
+            resultEl.classList.add('error');
+            resultEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB) — ❌ ${err.message}`;
           }
-        }
 
-        if (errors.length > 0) {
-          errorEl.innerHTML = errors.join('<br>');
-          errorEl.classList.remove('hidden');
-        } else {
-          errorEl.classList.add('hidden');
-          errorEl.textContent = '';
-          alert('✅ All files validated and ready!');
+          resultsContainer.appendChild(resultEl);
         }
       });
     });
