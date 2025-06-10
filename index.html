@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Validated Ad Upload (Multi-file)</title>
+  <title>Validated Multi Ad Upload</title>
 
   <script>
     UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
   </script>
-
   <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
 
   <style>
@@ -24,106 +23,98 @@
     .hidden {
       display: none;
     }
+    #upload-btn {
+      padding: 10px 20px;
+      background: #0073e6;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
-
 <body>
-<input
-  type="hidden"
-  role="uploadcare-uploader"
-  data-multiple="true"
-  data-multiple-max="50"
-  data-tabs="file url"
-  id="uploader"
-/>
 
+  <button id="upload-btn">Upload Ads</button>
   <div id="error-message" class="error hidden"></div>
 
   <script>
     const requiredDimensions = [
-      [300, 250],
-      [728, 90],
-      [300, 600],
-      [160, 600],
-      [320, 50],
-      [320, 480]
+      [300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]
     ];
-
     const allowedAdditionalDimensions = [
-      [336, 280],
-      [768, 1024],
-      [848, 480],
-      [1200, 1200],
-      [900, 1600]
+      [336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]
     ];
-
     const allAllowedDimensions = [...requiredDimensions, ...allowedAdditionalDimensions];
     const imageMimeTypes = ['image/png', 'image/jpeg', 'image/gif'];
     const zipMimeType = 'application/zip';
-
     const maxSizeImage = 500 * 1024; // 500 KB
     const maxSizeZip = 1024 * 1024;  // 1 MB
 
     const errorEl = document.getElementById('error-message');
-    const widget = uploadcare.Widget('#uploader');
+    const uploadBtn = document.getElementById('upload-btn');
 
-    widget.onUploadComplete(async (groupInfo) => {
-      errorEl.classList.add('hidden');
-      errorEl.textContent = '';
+    uploadBtn.addEventListener('click', () => {
+      const dialog = uploadcare.openDialog(null, {
+        multiple: true,
+        multipleMax: 50,
+        tabs: 'file', // local files only
+      });
 
-      const files = await groupInfo.files();
-      const errors = [];
+      dialog.done(async (filesPromise) => {
+        const files = await filesPromise.files();
+        const errors = [];
 
-      for (const filePromise of files) {
-        const fileInfo = await filePromise;
+        for (const filePromise of files) {
+          const fileInfo = await filePromise;
+          const mimeType = fileInfo.mimeType;
+          const sizeKB = Math.round(fileInfo.size / 1024);
 
-        const mimeType = fileInfo.mimeType;
-        const sizeKB = Math.round(fileInfo.size / 1024);
+          try {
+            if (imageMimeTypes.includes(mimeType)) {
+              if (fileInfo.size > maxSizeImage) {
+                throw new Error(`❌ "${fileInfo.name}" is ${sizeKB} KB. Max allowed for images: 500 KB.`);
+              }
 
-        try {
-          if (imageMimeTypes.includes(mimeType)) {
-            if (fileInfo.size > maxSizeImage) {
-              throw new Error(`❌ "${fileInfo.name}" is ${sizeKB} KB. Max allowed for images: 500 KB.`);
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.src = fileInfo.cdnUrl;
+
+              await new Promise((resolve, reject) => {
+                img.onload = () => {
+                  const matches = allAllowedDimensions.some(
+                    ([w, h]) => img.width === w && img.height === h
+                  );
+                  if (!matches) {
+                    reject(new Error(`❌ "${fileInfo.name}" is ${img.width}x${img.height}. Allowed: ${allAllowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}.`));
+                  } else {
+                    resolve();
+                  }
+                };
+                img.onerror = () => reject(new Error(`❌ Could not load "${fileInfo.name}" for dimension check.`));
+              });
+
+            } else if (mimeType === zipMimeType) {
+              if (fileInfo.size > maxSizeZip) {
+                throw new Error(`❌ "${fileInfo.name}" is ${sizeKB} KB. Max allowed for ZIPs: 1 MB.`);
+              }
+            } else {
+              throw new Error(`❌ "${fileInfo.name}" is not a supported file type.`);
             }
-
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.src = fileInfo.cdnUrl;
-
-            await new Promise((resolve, reject) => {
-              img.onload = () => {
-                const matches = allAllowedDimensions.some(
-                  ([w, h]) => img.width === w && img.height === h
-                );
-                if (!matches) {
-                  reject(new Error(`❌ "${fileInfo.name}" is ${img.width}x${img.height}. Allowed: ${allAllowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}.`));
-                } else {
-                  resolve();
-                }
-              };
-              img.onerror = () => reject(new Error(`❌ Could not load image "${fileInfo.name}" for dimension check.`));
-            });
-
-          } else if (mimeType === zipMimeType) {
-            if (fileInfo.size > maxSizeZip) {
-              throw new Error(`❌ "${fileInfo.name}" is ${sizeKB} KB. Max allowed for ZIPs: 1 MB.`);
-            }
-            // ZIP is valid, no dimension check needed
-          } else {
-            throw new Error(`❌ "${fileInfo.name}" is not a supported file type.`);
+          } catch (err) {
+            errors.push(err.message);
           }
-        } catch (err) {
-          errors.push(err.message);
         }
-      }
 
-      if (errors.length > 0) {
-        errorEl.innerHTML = errors.join('<br>');
-        errorEl.classList.remove('hidden');
-        widget.value(null); // Reset uploader
-      } else {
-        alert('✅ All files validated and ready!');
-      }
+        if (errors.length > 0) {
+          errorEl.innerHTML = errors.join('<br>');
+          errorEl.classList.remove('hidden');
+        } else {
+          errorEl.classList.add('hidden');
+          errorEl.textContent = '';
+          alert('✅ All files validated and ready!');
+        }
+      });
     });
   </script>
 </body>
