@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Validated Ad Upload</title>
+  <title>Validated Ad Upload (Multi-file)</title>
 
   <script>
     UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
@@ -32,7 +32,7 @@
     type="hidden"
     role="uploadcare-uploader"
     data-crop="disabled"
-    data-multiple="false"
+    data-multiple="true"
     id="uploader"
   />
 
@@ -57,7 +57,6 @@
     ];
 
     const allAllowedDimensions = [...requiredDimensions, ...allowedAdditionalDimensions];
-
     const imageMimeTypes = ['image/png', 'image/jpeg', 'image/gif'];
     const zipMimeType = 'application/zip';
 
@@ -67,54 +66,62 @@
     const errorEl = document.getElementById('error-message');
     const widget = uploadcare.Widget('#uploader');
 
-    widget.onUploadComplete(async (fileInfo) => {
+    widget.onUploadComplete(async (groupInfo) => {
       errorEl.classList.add('hidden');
       errorEl.textContent = '';
 
-      try {
+      const files = await groupInfo.files();
+      const errors = [];
+
+      for (const filePromise of files) {
+        const fileInfo = await filePromise;
+
         const mimeType = fileInfo.mimeType;
+        const sizeKB = Math.round(fileInfo.size / 1024);
 
-        // File size check based on file type
-        if (imageMimeTypes.includes(mimeType)) {
-          if (fileInfo.size > maxSizeImage) {
-            throw new Error(`❌ Image is ${Math.round(fileInfo.size / 1024)} KB. Max allowed: 500 KB.`);
-          }
-        } else if (mimeType === zipMimeType) {
-          if (fileInfo.size > maxSizeZip) {
-            throw new Error(`❌ ZIP file is ${Math.round(fileInfo.size / 1024)} KB. Max allowed: 1 MB.`);
-          }
-          alert('✅ HTML5 ZIP file uploaded and validated!');
-          return;
-        } else {
-          throw new Error('❌ Unsupported file type. Allowed: JPG, PNG, GIF, or ZIP.');
-        }
-
-        // If image, validate dimensions
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = fileInfo.cdnUrl;
-
-        await new Promise((resolve, reject) => {
-          img.onload = () => {
-            const matches = allAllowedDimensions.some(
-              ([w, h]) => img.width === w && img.height === h
-            );
-            if (!matches) {
-              reject(new Error(
-                `❌ Uploaded image is ${img.width}x${img.height}. Allowed sizes: ${allAllowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}.`
-              ));
-            } else {
-              resolve();
+        try {
+          if (imageMimeTypes.includes(mimeType)) {
+            if (fileInfo.size > maxSizeImage) {
+              throw new Error(`❌ "${fileInfo.name}" is ${sizeKB} KB. Max allowed for images: 500 KB.`);
             }
-          };
-          img.onerror = () => reject(new Error('❌ Could not load image for dimension validation.'));
-        });
 
-        alert('✅ Image file uploaded and validated!');
-      } catch (err) {
-        errorEl.textContent = err.message;
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = fileInfo.cdnUrl;
+
+            await new Promise((resolve, reject) => {
+              img.onload = () => {
+                const matches = allAllowedDimensions.some(
+                  ([w, h]) => img.width === w && img.height === h
+                );
+                if (!matches) {
+                  reject(new Error(`❌ "${fileInfo.name}" is ${img.width}x${img.height}. Allowed: ${allAllowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}.`));
+                } else {
+                  resolve();
+                }
+              };
+              img.onerror = () => reject(new Error(`❌ Could not load image "${fileInfo.name}" for dimension check.`));
+            });
+
+          } else if (mimeType === zipMimeType) {
+            if (fileInfo.size > maxSizeZip) {
+              throw new Error(`❌ "${fileInfo.name}" is ${sizeKB} KB. Max allowed for ZIPs: 1 MB.`);
+            }
+            // ZIP is valid, no dimension check needed
+          } else {
+            throw new Error(`❌ "${fileInfo.name}" is not a supported file type.`);
+          }
+        } catch (err) {
+          errors.push(err.message);
+        }
+      }
+
+      if (errors.length > 0) {
+        errorEl.innerHTML = errors.join('<br>');
         errorEl.classList.remove('hidden');
         widget.value(null); // Reset uploader
+      } else {
+        alert('✅ All files validated and ready!');
       }
     });
   </script>
