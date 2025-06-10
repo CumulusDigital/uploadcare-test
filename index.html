@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Validated Multi Ad Upload</title>
+  <title>Multi Ad Upload with Preview + Validation</title>
 
   <script>
     UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
@@ -31,6 +31,9 @@
       margin-top: 1rem;
       border-radius: 8px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
     }
 
     .file-result.success {
@@ -40,6 +43,18 @@
     .file-result.error {
       border-left: 4px solid red;
       color: red;
+    }
+
+    .file-preview img {
+      max-width: 100px;
+      max-height: 100px;
+      object-fit: contain;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .file-details {
+      flex: 1;
     }
 
     .file-list {
@@ -75,7 +90,7 @@
       const dialog = uploadcare.openDialog(null, {
         multiple: true,
         multipleMax: 10,
-        tabs: 'file' // restrict to local files
+        tabs: 'file' // restrict to local files only
       });
 
       dialog.done(async (filesPromise) => {
@@ -90,6 +105,12 @@
 
           const resultEl = document.createElement('div');
           resultEl.classList.add('file-result');
+
+          const previewEl = document.createElement('div');
+          previewEl.className = 'file-preview';
+
+          const detailsEl = document.createElement('div');
+          detailsEl.className = 'file-details';
 
           try {
             if (imageMimeTypes.includes(mimeType)) {
@@ -109,6 +130,7 @@
                   if (!matches) {
                     reject(new Error(`Wrong dimensions: ${img.width}x${img.height}. Allowed: ${allAllowedDimensions.map(([w, h]) => `${w}x${h}`).join(', ')}`));
                   } else {
+                    previewEl.appendChild(img);
                     resolve();
                   }
                 };
@@ -116,7 +138,7 @@
               });
 
               resultEl.classList.add('success');
-              resultEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB) — ✅ Valid image.`;
+              detailsEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB)<br>✅ Valid image.`;
 
             } else if (mimeType === zipMimeType) {
               if (fileInfo.size > maxSizeZip) {
@@ -124,15 +146,18 @@
               }
 
               resultEl.classList.add('success');
-              resultEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB) — ✅ Valid HTML5 ZIP.`;
+              detailsEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB)<br>✅ Valid HTML5 ZIP.`;
+
             } else {
               throw new Error(`Unsupported file type.`);
             }
           } catch (err) {
             resultEl.classList.add('error');
-            resultEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB) — ❌ ${err.message}`;
+            detailsEl.innerHTML = `<strong>${fileName}</strong> (${sizeKB} KB)<br>❌ ${err.message}`;
           }
 
+          resultEl.appendChild(previewEl);
+          resultEl.appendChild(detailsEl);
           resultsContainer.appendChild(resultEl);
         }
       });
