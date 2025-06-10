@@ -29,11 +29,27 @@
       cursor: pointer;
       font-size: 16px;
       margin-bottom: 1.5rem;
+      max-width: 700px;
+      width: 100%;
+    }
+    #file-results {
+      width: 100%;
+      max-width: 700px;
+      max-height: 500px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid #ddd;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #fafafa;
+      box-sizing: border-box;
     }
     .file-result {
       background: white;
       padding: 1rem;
-      margin-top: 1rem;
       border-radius: 8px;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
       display: flex;
@@ -41,7 +57,8 @@
       gap: 1rem;
       border-left: 4px solid transparent;
       position: relative;
-      width: 400px;
+      width: 95%;
+      box-sizing: border-box;
     }
     .file-result.success {
       border-left-color: green;
@@ -76,21 +93,6 @@
       line-height: 20px;
       font-size: 16px;
     }
-    .allowed-sizes {
-      color: green;
-      font-weight: 600;
-      margin-top: 1rem;
-      max-width: 400px;
-      text-align: center;
-    }
-    #file-results {
-      width: 420px;
-      max-height: 400px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
   </style>
 </head>
 <body>
@@ -98,10 +100,6 @@
   <button id="upload-btn">Upload Ads</button>
 
   <div id="file-results"></div>
-
-  <div class="allowed-sizes">
-    Allowed sizes: 300x250, 728x90, 300x600, 160x600, 320x50, 320x480, 336x280, 768x1024, 848x480, 1200x1200, 900x1600
-  </div>
 
   <script>
     const requiredDimensions = [
@@ -121,7 +119,6 @@
     const uploadBtn = document.getElementById('upload-btn');
     const resultsContainer = document.getElementById('file-results');
 
-    // Create remove button helper
     function createRemoveBtn() {
       const btn = document.createElement('button');
       btn.textContent = '×';
@@ -156,7 +153,6 @@
           const detailsEl = document.createElement('div');
           detailsEl.className = 'file-details';
 
-          // Add remove button and hook event
           const removeBtn = createRemoveBtn();
           removeBtn.onclick = () => {
             resultsContainer.removeChild(resultEl);
@@ -209,7 +205,13 @@
 
           resultEl.appendChild(previewEl);
           resultEl.appendChild(detailsEl);
-          resultsContainer.appendChild(resultEl);
+
+          // Insert error previews at top, success previews at bottom
+          if (resultEl.classList.contains('error')) {
+            resultsContainer.insertBefore(resultEl, resultsContainer.firstChild);
+          } else {
+            resultsContainer.appendChild(resultEl);
+          }
         }
       });
     });
