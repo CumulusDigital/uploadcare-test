@@ -180,15 +180,57 @@
                 img.onerror = () => reject(new Error(`Could not verify dimensions.`));
               });
 
+              // ---- SEND TO ZAPIER ON SUCCESSFUL IMAGE UPLOAD ----
               resultDiv.classList.add('success');
               detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
+
+              // Send file data to Zapier webhook
+              const urlParams = new URLSearchParams(window.location.search);
+              const campaignId = urlParams.get("campaign_id");
+              const orderNumber = urlParams.get("order_number");
+              const client = urlParams.get("client");
+
+              fetch("https://hooks.zapier.com/hooks/catch/23348444/uyli640/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  campaign_id: campaignId,
+                  order_number: orderNumber,
+                  client: client,
+                  file_url: fileInfo.cdnUrl,
+                  file_name: fileName,
+                  file_size_kb: sizeKB
+                })
+              });
+
             } else if (mimeType === zipType) {
               if (fileInfo.size > maxZipSize) {
                 throw new Error(`ZIP too large (${sizeKB} KB). Max 1 MB.`);
               }
 
+              // ---- SEND TO ZAPIER ON SUCCESSFUL ZIP UPLOAD ----
               resultDiv.classList.add('success');
               detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid HTML5 ZIP (${sizeKB} KB)`;
+
+              // Send file data to Zapier webhook
+              const urlParams = new URLSearchParams(window.location.search);
+              const campaignId = urlParams.get("campaign_id");
+              const orderNumber = urlParams.get("order_number");
+              const client = urlParams.get("client");
+
+              fetch("https://hooks.zapier.com/hooks/catch/23348444/uyli640/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  campaign_id: campaignId,
+                  order_number: orderNumber,
+                  client: client,
+                  file_url: fileInfo.cdnUrl,
+                  file_name: fileName,
+                  file_size_kb: sizeKB
+                })
+              });
+
             } else {
               throw new Error(`Unsupported file type.`);
             }
