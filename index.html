@@ -158,6 +158,19 @@
           resultDiv.appendChild(removeBtn);
 
           try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const campaignId = urlParams.get("campaign_id") || "UNKNOWN_CAMPAIGN";
+            const orderNumber = urlParams.get("order_number") || "UNKNOWN_ORDER";
+            const client = urlParams.get("client") || "UNKNOWN_CLIENT";
+
+            if (
+              campaignId === "UNKNOWN_CAMPAIGN" ||
+              orderNumber === "UNKNOWN_ORDER" ||
+              client === "UNKNOWN_CLIENT"
+            ) {
+              alert("Heads up! Your upload is missing some campaign details. We’ll still receive it, but please use the official form link next time so we can match files to your campaign.");
+            }
+
             if (imageTypes.includes(mimeType)) {
               if (fileInfo.size > maxImageSize) {
                 throw new Error(`Too large (${sizeKB} KB). Max is 500 KB.`);
@@ -180,15 +193,8 @@
                 img.onerror = () => reject(new Error(`Could not verify dimensions.`));
               });
 
-              // ---- SEND TO ZAPIER ON SUCCESSFUL IMAGE UPLOAD ----
               resultDiv.classList.add('success');
               detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
-
-              // Send file data to Zapier webhook
-              const urlParams = new URLSearchParams(window.location.search);
-              const campaignId = urlParams.get("campaign_id");
-              const orderNumber = urlParams.get("order_number");
-              const client = urlParams.get("client");
 
               fetch("https://hooks.zapier.com/hooks/catch/14427152/uohfx02/", {
                 method: "POST",
@@ -208,15 +214,8 @@
                 throw new Error(`ZIP too large (${sizeKB} KB). Max 1 MB.`);
               }
 
-              // ---- SEND TO ZAPIER ON SUCCESSFUL ZIP UPLOAD ----
               resultDiv.classList.add('success');
               detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid HTML5 ZIP (${sizeKB} KB)`;
-
-              // Send file data to Zapier webhook
-              const urlParams = new URLSearchParams(window.location.search);
-              const campaignId = urlParams.get("campaign_id");
-              const orderNumber = urlParams.get("order_number");
-              const client = urlParams.get("client");
 
               fetch("https://hooks.zapier.com/hooks/catch/14427152/uohfx02/", {
                 method: "POST",
@@ -242,7 +241,6 @@
           resultDiv.appendChild(previewDiv);
           resultDiv.appendChild(detailsDiv);
 
-          // Place error files at the top
           if (resultDiv.classList.contains('error')) {
             results.insertBefore(resultDiv, results.firstChild);
           } else {
