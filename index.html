@@ -157,82 +157,77 @@
           removeBtn.onclick = () => results.removeChild(resultDiv);
           resultDiv.appendChild(removeBtn);
 
-          try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const campaignId = urlParams.get("campaign_id") || "UNKNOWN_CAMPAIGN";
-            const orderNumber = urlParams.get("order_number") || "UNKNOWN_ORDER";
-            const client = urlParams.get("client") || "UNKNOWN_CLIENT";
+try {
+  const urlParams = new URLSearchParams(window.location.search);
+  const campaignId = urlParams.get("campaign_id") || "MISSING";
+  const orderNumber = urlParams.get("order_number") || "MISSING";
+  const client = urlParams.get("client") || "MISSING";
 
-            if (
-              campaignId === "UNKNOWN_CAMPAIGN" ||
-              orderNumber === "UNKNOWN_ORDER" ||
-              client === "UNKNOWN_CLIENT"
-            ) {
-              alert("Heads up! Your upload is missing some campaign details. We’ll still receive it, but please use the official form link next time so we can match files to your campaign.");
-            }
+  const querystringUsed = (
+    urlParams.get("campaign_id") &&
+    urlParams.get("order_number") &&
+    urlParams.get("client")
+  ) ? "YES" : "NO";
 
-            if (imageTypes.includes(mimeType)) {
-              if (fileInfo.size > maxImageSize) {
-                throw new Error(`Too large (${sizeKB} KB). Max is 500 KB.`);
-              }
+  const payload = {
+    campaign_id: campaignId,
+    order_number: orderNumber,
+    client: client,
+    file_url: fileInfo.cdnUrl,
+    file_name: fileName,
+    file_size_kb: sizeKB,
+    querystring: querystringUsed
+  };
 
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              img.src = fileInfo.cdnUrl;
+  if (imageTypes.includes(mimeType)) {
+    if (fileInfo.size > maxImageSize) {
+      throw new Error(`Too large (${sizeKB} KB). Max is 500 KB.`);
+    }
 
-              await new Promise((resolve, reject) => {
-                img.onload = () => {
-                  const matches = allowedDimensions.some(([w, h]) => img.width === w && img.height === h);
-                  if (!matches) {
-                    reject(new Error(`Incorrect size: ${img.width}x${img.height}`));
-                  } else {
-                    previewDiv.appendChild(img);
-                    resolve();
-                  }
-                };
-                img.onerror = () => reject(new Error(`Could not verify dimensions.`));
-              });
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = fileInfo.cdnUrl;
 
-              resultDiv.classList.add('success');
-              detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
+    await new Promise((resolve, reject) => {
+      img.onload = () => {
+        const matches = allowedDimensions.some(([w, h]) => img.width === w && img.height === h);
+        if (!matches) {
+          reject(new Error(`Incorrect size: ${img.width}x${img.height}`));
+        } else {
+          previewDiv.appendChild(img);
+          resolve();
+        }
+      };
+      img.onerror = () => reject(new Error(`Could not verify dimensions.`));
+    });
 
-              fetch("https://hooks.zapier.com/hooks/catch/14427152/uohfx02/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  campaign_id: campaignId,
-                  order_number: orderNumber,
-                  client: client,
-                  file_url: fileInfo.cdnUrl,
-                  file_name: fileName,
-                  file_size_kb: sizeKB
-                })
-              });
+    resultDiv.classList.add('success');
+    detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
 
-            } else if (mimeType === zipType) {
-              if (fileInfo.size > maxZipSize) {
-                throw new Error(`ZIP too large (${sizeKB} KB). Max 1 MB.`);
-              }
+    fetch("https://hooks.zapier.com/hooks/catch/14427152/uohfx02/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-              resultDiv.classList.add('success');
-              detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid HTML5 ZIP (${sizeKB} KB)`;
+  } else if (mimeType === zipType) {
+    if (fileInfo.size > maxZipSize) {
+      throw new Error(`ZIP too large (${sizeKB} KB). Max 1 MB.`);
+    }
 
-              fetch("https://hooks.zapier.com/hooks/catch/14427152/uohfx02/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  campaign_id: campaignId,
-                  order_number: orderNumber,
-                  client: client,
-                  file_url: fileInfo.cdnUrl,
-                  file_name: fileName,
-                  file_size_kb: sizeKB
-                })
-              });
+    resultDiv.classList.add('success');
+    detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid HTML5 ZIP (${sizeKB} KB)`;
 
-            } else {
-              throw new Error(`Unsupported file type.`);
-            }
+    fetch("https://hooks.zapier.com/hooks/catch/14427152/uohfx02/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+  } else {
+    throw new Error(`Unsupported file type.`);
+  }
+}
           } catch (err) {
             resultDiv.classList.add('error');
             detailsDiv.innerHTML = `<strong>${fileName}</strong><br>❌ ${err.message}`;
