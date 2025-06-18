@@ -169,7 +169,7 @@
               : (fileInfo.mimeType ? fileInfo.mimeType.split('/')[1].toUpperCase() : 'UNKNOWN');
 
             // Get upload datetime from originalImageInfo or fallback to createdAt
-            const datetimeUploaded = fileInfo.originalImageInfo?.datetimeOriginal || fileInfo.createdAt || "UNKNOWN";
+            const datetimeUploaded = fileInfo.uploadedAt || fileInfo.originalImageInfo?.datetimeOriginal || fileInfo.createdAt || "UNKNOWN";
 
             if (imageTypes.includes(mimeType)) {
               if (fileInfo.size > maxImageSize) {
