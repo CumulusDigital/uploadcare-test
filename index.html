@@ -163,6 +163,9 @@
             const client = urlParams.get("client") || "MISSING";
             const querystringPresent = urlParams.toString() ? "YES" : "NO";
 
+            // Use only datetimeUploaded or datetimeStored, fallback to current time
+            const datetimeUploaded = fileInfo.datetimeUploaded || fileInfo.datetimeStored || new Date().toISOString();
+
             if (imageTypes.includes(mimeType)) {
               if (fileInfo.size > maxImageSize) {
                 throw new Error(`Too large (${sizeKB} KB). Max is 500 KB.`);
@@ -185,8 +188,6 @@
                 img.onerror = () => reject(new Error(`Could not verify dimensions.`));
               });
 
-              const imageFormat = mimeType.split('/')[1].toUpperCase();
-
               resultDiv.classList.add('success');
               detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
 
@@ -194,20 +195,19 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  "campaign_id": campaignId,
-                  "order_number": orderNumber,
-                  "client": client,
-                  "querystring": querystringPresent,
-                  "file_url": fileInfo.cdnUrl,
-                  "file_name": fileName,
-                  "file_size_kb": sizeKB,
-                  "Data Uuid": fileInfo.uuid,
-                  "Data Datetime Uploaded": fileInfo.datetimeStored,
-                  "Data Original Filename": fileInfo.originalFilename,
-                  "Data Original File URL": fileInfo.originalUrl,
-                  "Data Content Info Image Format": imageFormat,
-                  "Data Content Info Image Width": img.width,
-                  "Data Content Info Image Height": img.height
+                  campaign_id: campaignId,
+                  order_number: orderNumber,
+                  client: client,
+                  querystring: querystringPresent,
+                  file_url: fileInfo.cdnUrl,
+                  file_name: fileName,
+                  file_size_kb: sizeKB,
+                  data_datetime_uploaded: datetimeUploaded,
+                  data_uuid: fileInfo.uuid,
+                  data_original_file_url: fileInfo.cdnUrl,
+                  data_content_info_image_format: fileInfo.format ? fileInfo.format.toUpperCase() : 'UNKNOWN',
+                  data_content_info_image_width: fileInfo.originalImageInfo?.width || 'UNKNOWN',
+                  data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
                 })
               });
 
@@ -223,17 +223,19 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  "campaign_id": campaignId,
-                  "order_number": orderNumber,
-                  "client": client,
-                  "querystring": querystringPresent,
-                  "file_url": fileInfo.cdnUrl,
-                  "file_name": fileName,
-                  "file_size_kb": sizeKB,
-                  "Data Uuid": fileInfo.uuid,
-                  "Data Datetime Uploaded": fileInfo.datetimeStored,
-                  "Data Original Filename": fileInfo.originalFilename,
-                  "Data Original File URL": fileInfo.originalUrl
+                  campaign_id: campaignId,
+                  order_number: orderNumber,
+                  client: client,
+                  querystring: querystringPresent,
+                  file_url: fileInfo.cdnUrl,
+                  file_name: fileName,
+                  file_size_kb: sizeKB,
+                  data_datetime_uploaded: datetimeUploaded,
+                  data_uuid: fileInfo.uuid,
+                  data_original_file_url: fileInfo.cdnUrl,
+                  data_content_info_image_format: fileInfo.format ? fileInfo.format.toUpperCase() : 'UNKNOWN',
+                  data_content_info_image_width: fileInfo.originalImageInfo?.width || 'UNKNOWN',
+                  data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
                 })
               });
 
