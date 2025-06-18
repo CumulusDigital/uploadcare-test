@@ -76,7 +76,6 @@
       flex-grow: 1;
       padding: 0 1rem;
       font-size: 14px;
-      white-space: pre-line;
     }
 
     .remove-btn {
@@ -164,13 +163,13 @@
             const client = urlParams.get("client") || "MISSING";
             const querystringPresent = urlParams.toString() ? "YES" : "NO";
 
-            // Determine format robustly
-            let format = fileInfo.format;
-            if (!format || format.toUpperCase() === 'UNKNOWN') {
-              // fallback to extracting from mime type
-              const mimeParts = mimeType.split('/');
-              format = mimeParts.length === 2 ? mimeParts[1].toUpperCase() : 'UNKNOWN';
-            }
+            // Determine file format with fallback
+            const format = fileInfo.format
+              ? fileInfo.format.toUpperCase()
+              : (fileInfo.mimeType ? fileInfo.mimeType.split('/')[1].toUpperCase() : 'UNKNOWN');
+
+            // Get upload datetime from originalImageInfo or fallback to createdAt
+            const datetimeUploaded = fileInfo.originalImageInfo?.datetimeOriginal || fileInfo.createdAt || "UNKNOWN";
 
             if (imageTypes.includes(mimeType)) {
               if (fileInfo.size > maxImageSize) {
@@ -195,21 +194,8 @@
               });
 
               resultDiv.classList.add('success');
-              detailsDiv.innerText =
-                `File Name: ${fileName}\n` +
-                `File Size KB: ${sizeKB}\n` +
-                `Data Uuid: ${fileInfo.uuid}\n` +
-                `Data Original File URL: ${fileInfo.cdnUrl}\n` +
-                `Data Content Info Image Format: ${format}\n` +
-                `Data Content Info Image Width: ${img.width}\n` +
-                `Data Content Info Image Height: ${img.height}\n` +
-                `Data Datetime Uploaded: ${fileInfo.datetimeStored || 'UNKNOWN'}\n` +
-                `Campaign Id: ${campaignId}\n` +
-                `Order Number: ${orderNumber}\n` +
-                `Client: ${client}\n` +
-                `Querystring Present: ${querystringPresent}`;
+              detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
 
-              // POST to Zapier proxy
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -221,12 +207,12 @@
                   file_url: fileInfo.cdnUrl,
                   file_name: fileName,
                   file_size_kb: sizeKB,
+                  data_datetime_uploaded: datetimeUploaded,
                   data_uuid: fileInfo.uuid,
                   data_original_file_url: fileInfo.cdnUrl,
                   data_content_info_image_format: format,
-                  data_content_info_image_width: img.width,
-                  data_content_info_image_height: img.height,
-                  data_datetime_uploaded: fileInfo.datetimeStored || null
+                  data_content_info_image_width: fileInfo.originalImageInfo?.width || 'UNKNOWN',
+                  data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
                 })
               });
 
@@ -236,19 +222,8 @@
               }
 
               resultDiv.classList.add('success');
-              detailsDiv.innerText =
-                `File Name: ${fileName}\n` +
-                `File Size KB: ${sizeKB}\n` +
-                `Data Uuid: ${fileInfo.uuid}\n` +
-                `Data Original File URL: ${fileInfo.cdnUrl}\n` +
-                `Data Content Info Image Format: ZIP\n` +
-                `Data Datetime Uploaded: ${fileInfo.datetimeStored || 'UNKNOWN'}\n` +
-                `Campaign Id: ${campaignId}\n` +
-                `Order Number: ${orderNumber}\n` +
-                `Client: ${client}\n` +
-                `Querystring Present: ${querystringPresent}`;
+              detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid HTML5 ZIP (${sizeKB} KB)`;
 
-              // POST to Zapier proxy
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -260,10 +235,12 @@
                   file_url: fileInfo.cdnUrl,
                   file_name: fileName,
                   file_size_kb: sizeKB,
+                  data_datetime_uploaded: datetimeUploaded,
                   data_uuid: fileInfo.uuid,
                   data_original_file_url: fileInfo.cdnUrl,
-                  data_content_info_image_format: 'ZIP',
-                  data_datetime_uploaded: fileInfo.datetimeStored || null
+                  data_content_info_image_format: format,
+                  data_content_info_image_width: fileInfo.originalImageInfo?.width || 'UNKNOWN',
+                  data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
                 })
               });
 
@@ -272,7 +249,7 @@
             }
           } catch (err) {
             resultDiv.classList.add('error');
-            detailsDiv.textContent = `File Name: ${fileName}\n❌ ${err.message}`;
+            detailsDiv.innerHTML = `<strong>${fileName}</strong><br>❌ ${err.message}`;
           }
 
           resultDiv.appendChild(previewDiv);
