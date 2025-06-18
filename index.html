@@ -163,6 +163,30 @@
             const client = urlParams.get("client") || "MISSING";
             const querystringPresent = urlParams.toString() ? "YES" : "NO";
 
+            const commonPayload = {
+              uuid: fileInfo.uuid,
+              file_url: fileInfo.cdnUrl,
+              file_name: fileName,
+              file_size_kb: sizeKB,
+              mime_type: mimeType,
+              campaign_id: campaignId,
+              order_number: orderNumber,
+              client: client,
+              querystring: querystringPresent,
+              event: "file.uploaded",
+              hook_version: "0.7",
+              project_pub_key: UPLOADCARE_PUBLIC_KEY,
+              datetime_created: new Date().toISOString(),
+              datetime_updated: new Date().toISOString(),
+              initiator: {
+                type: "api",
+                detail: {
+                  request_id: crypto.randomUUID?.() || fileInfo.uuid
+                }
+              },
+              target: "https://hooks.zapier.com/hooks/catch/23348444/uyli640/"
+            };
+
             if (imageTypes.includes(mimeType)) {
               if (fileInfo.size > maxImageSize) {
                 throw new Error(`Too large (${sizeKB} KB). Max is 500 KB.`);
@@ -191,15 +215,7 @@
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  campaign_id: campaignId,
-                  order_number: orderNumber,
-                  client: client,
-                  querystring: querystringPresent,
-                  file_url: fileInfo.cdnUrl,
-                  file_name: fileName,
-                  file_size_kb: sizeKB
-                })
+                body: JSON.stringify(commonPayload)
               });
 
             } else if (mimeType === zipType) {
@@ -213,15 +229,7 @@
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  campaign_id: campaignId,
-                  order_number: orderNumber,
-                  client: client,
-                  querystring: querystringPresent,
-                  file_url: fileInfo.cdnUrl,
-                  file_name: fileName,
-                  file_size_kb: sizeKB
-                })
+                body: JSON.stringify(commonPayload)
               });
 
             } else {
