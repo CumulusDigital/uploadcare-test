@@ -163,28 +163,18 @@
             const client = urlParams.get("client") || "MISSING";
             const querystringPresent = urlParams.toString() ? "YES" : "NO";
 
-            const commonPayload = {
-              uuid: fileInfo.uuid,
-              file_url: fileInfo.cdnUrl,
-              file_name: fileName,
-              file_size_kb: sizeKB,
-              mime_type: mimeType,
+            const payload = {
+              "Data Original Filename": fileName,
+              "Data Datetime Uploaded": new Date().toISOString(),
+              "Data Content Info Image Format": mimeType,
+              "Data Content Info Image Width": null,
+              "Data Content Info Image Height": null,
+              "Data Original File URL": fileInfo.cdnUrl,
+              "Data Uuid": fileInfo.uuid,
               campaign_id: campaignId,
               order_number: orderNumber,
               client: client,
-              querystring: querystringPresent,
-              event: "file.uploaded",
-              hook_version: "0.7",
-              project_pub_key: UPLOADCARE_PUBLIC_KEY,
-              datetime_created: new Date().toISOString(),
-              datetime_updated: new Date().toISOString(),
-              initiator: {
-                type: "api",
-                detail: {
-                  request_id: crypto.randomUUID?.() || fileInfo.uuid
-                }
-              },
-              target: "https://hooks.zapier.com/hooks/catch/23348444/uyli640/"
+              querystring: querystringPresent
             };
 
             if (imageTypes.includes(mimeType)) {
@@ -203,6 +193,8 @@
                     reject(new Error(`Incorrect size: ${img.width}x${img.height}`));
                   } else {
                     previewDiv.appendChild(img);
+                    payload["Data Content Info Image Width"] = img.width;
+                    payload["Data Content Info Image Height"] = img.height;
                     resolve();
                   }
                 };
@@ -215,7 +207,7 @@
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(commonPayload)
+                body: JSON.stringify(payload)
               });
 
             } else if (mimeType === zipType) {
@@ -229,7 +221,7 @@
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(commonPayload)
+                body: JSON.stringify(payload)
               });
 
             } else {
