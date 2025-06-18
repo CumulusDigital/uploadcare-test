@@ -196,6 +196,7 @@
               resultDiv.classList.add('success');
               detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
 
+              // Send metadata along with file info to Zapier proxy
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -224,6 +225,7 @@
               resultDiv.classList.add('success');
               detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid HTML5 ZIP (${sizeKB} KB)`;
 
+              // Send metadata along with file info to Zapier proxy
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
