@@ -141,6 +141,7 @@
           const fileInfo = await filePromise;
           const fileName = fileInfo.name;
           const mimeType = fileInfo.mimeType;
+          const imageFormat = mimeType.split('/')[1].toUpperCase();
           const sizeKB = Math.round(fileInfo.size / 1024);
 
           const resultDiv = document.createElement('div');
@@ -163,20 +164,6 @@
             const client = urlParams.get("client") || "MISSING";
             const querystringPresent = urlParams.toString() ? "YES" : "NO";
 
-            const payload = {
-              "Data Original Filename": fileName,
-              "Data Datetime Uploaded": new Date().toISOString(),
-              "Data Content Info Image Format": mimeType,
-              "Data Content Info Image Width": null,
-              "Data Content Info Image Height": null,
-              "Data Original File URL": fileInfo.cdnUrl,
-              "Data Uuid": fileInfo.uuid,
-              campaign_id: campaignId,
-              order_number: orderNumber,
-              client: client,
-              querystring: querystringPresent
-            };
-
             if (imageTypes.includes(mimeType)) {
               if (fileInfo.size > maxImageSize) {
                 throw new Error(`Too large (${sizeKB} KB). Max is 500 KB.`);
@@ -193,8 +180,6 @@
                     reject(new Error(`Incorrect size: ${img.width}x${img.height}`));
                   } else {
                     previewDiv.appendChild(img);
-                    payload["Data Content Info Image Width"] = img.width;
-                    payload["Data Content Info Image Height"] = img.height;
                     resolve();
                   }
                 };
@@ -207,7 +192,22 @@
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                  "campaign_id": campaignId,
+                  "order_number": orderNumber,
+                  "client": client,
+                  "querystring": querystringPresent,
+                  "file_url": fileInfo.cdnUrl,
+                  "file_name": fileName,
+                  "file_size_kb": sizeKB,
+                  "Data Uuid": fileInfo.uuid,
+                  "Data Datetime Uploaded": fileInfo.datetimeUploaded,
+                  "Data Original Filename": fileInfo.originalFilename,
+                  "Data Original File URL": fileInfo.originalUrl,
+                  "Data Content Info Image Format": imageFormat,
+                  "Data Content Info Image Width": img.width,
+                  "Data Content Info Image Height": img.height
+                })
               });
 
             } else if (mimeType === zipType) {
@@ -221,7 +221,19 @@
               fetch(zapierProxyUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                  "campaign_id": campaignId,
+                  "order_number": orderNumber,
+                  "client": client,
+                  "querystring": querystringPresent,
+                  "file_url": fileInfo.cdnUrl,
+                  "file_name": fileName,
+                  "file_size_kb": sizeKB,
+                  "Data Uuid": fileInfo.uuid,
+                  "Data Datetime Uploaded": fileInfo.datetimeUploaded,
+                  "Data Original Filename": fileInfo.originalFilename,
+                  "Data Original File URL": fileInfo.originalUrl
+                })
               });
 
             } else {
