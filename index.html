@@ -141,7 +141,6 @@
           const fileInfo = await filePromise;
           const fileName = fileInfo.name;
           const mimeType = fileInfo.mimeType;
-          const imageFormat = mimeType.split('/')[1].toUpperCase();
           const sizeKB = Math.round(fileInfo.size / 1024);
 
           const resultDiv = document.createElement('div');
@@ -186,6 +185,8 @@
                 img.onerror = () => reject(new Error(`Could not verify dimensions.`));
               });
 
+              const imageFormat = mimeType.split('/')[1].toUpperCase();
+
               resultDiv.classList.add('success');
               detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
 
@@ -201,7 +202,7 @@
                   "file_name": fileName,
                   "file_size_kb": sizeKB,
                   "Data Uuid": fileInfo.uuid,
-                  "Data Datetime Uploaded": fileInfo.datetimeUploaded,
+                  "Data Datetime Uploaded": fileInfo.datetimeStored,
                   "Data Original Filename": fileInfo.originalFilename,
                   "Data Original File URL": fileInfo.originalUrl,
                   "Data Content Info Image Format": imageFormat,
@@ -230,7 +231,7 @@
                   "file_name": fileName,
                   "file_size_kb": sizeKB,
                   "Data Uuid": fileInfo.uuid,
-                  "Data Datetime Uploaded": fileInfo.datetimeUploaded,
+                  "Data Datetime Uploaded": fileInfo.datetimeStored,
                   "Data Original Filename": fileInfo.originalFilename,
                   "Data Original File URL": fileInfo.originalUrl
                 })
