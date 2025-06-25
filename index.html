@@ -32,7 +32,45 @@
     .drop-area.dragover {
       background: #f0f8ff;
     }
-    #file-results {
+    #upload-controls {
+      max-width: 720px;
+      width: 100%;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    #upload-btn {
+      background: #0073e6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 24px;
+      font-size: 16px;
+      width: 100%;
+      max-width: 720px;
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
+      transition: background 0.3s ease;
+    }
+    #upload-btn:disabled {
+      background: #a0c4ff;
+      cursor: not-allowed;
+    }
+    #upload-btn.success {
+      background: #28a745;
+      cursor: pointer;
+    }
+    #upload-instruction {
+      font-size: 13px;
+      color: #555;
+      font-style: italic;
+      text-align: center;
+      user-select: none;
+    }
+    #file-results, #uploaded-files {
       width: 100%;
       max-width: 720px;
       display: flex;
@@ -40,24 +78,22 @@
       gap: 12px;
       margin-bottom: 1rem;
     }
-    .file-result {
+    .file-result, .uploaded-file {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       padding: 1rem;
       border-radius: 6px;
       background: #f9f9f9;
-      border-left: 4px solid transparent;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      position: relative;
       font-size: 14px;
+      position: relative;
     }
     .file-result.success {
-      border-left-color: #28a745;
+      border-left: 4px solid #28a745;
       color: #155724;
     }
     .file-result.error {
-      border-left-color: #dc3545;
+      border-left: 4px solid #dc3545;
       color: #b30000;
     }
     .file-preview img {
@@ -89,48 +125,32 @@
       top: 6px;
       right: 6px;
     }
-    #upload-btn {
-      background: #0073e6;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 12px 24px;
-      font-size: 16px;
-      width: 100%;
-      max-width: 720px;
-      cursor: pointer;
+    #uploaded-files-label {
       font-weight: 600;
-      user-select: none;
-      transition: background 0.3s ease;
-    }
-    #upload-btn:disabled {
-      background: #a0c4ff;
-      cursor: not-allowed;
-    }
-    #upload-instruction {
-      margin-top: 8px;
-      font-size: 13px;
-      color: #555;
-      font-style: italic;
+      color: #0073e6;
+      margin-bottom: 0.5rem;
       max-width: 720px;
       width: 100%;
-      text-align: center;
-      user-select: none;
     }
   </style>
 </head>
 <body>
+
+  <div id="upload-controls">
+    <button id="upload-btn" disabled>Upload Files (0)</button>
+    <div id="upload-instruction">You must click “Upload Files” to submit your ads and move forward.</div>
+  </div>
 
   <div class="drop-area" id="drop-area">
     Drag & drop your images here, or click to select<br />
     <small>(Only JPG, PNG, GIF up to 500 KB)</small>
   </div>
   <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif" multiple style="display:none;" />
-  
+
   <div id="file-results"></div>
 
-  <button id="upload-btn" disabled>Upload Files (0)</button>
-  <div id="upload-instruction">You must click “Upload Files” to submit your ads and move forward.</div>
+  <div id="uploaded-files-label" style="display:none;">Uploaded Files:</div>
+  <div id="uploaded-files"></div>
 
 <script>
   const dropArea = document.getElementById('drop-area');
@@ -138,6 +158,8 @@
   const results = document.getElementById('file-results');
   const uploadBtn = document.getElementById('upload-btn');
   const uploadInstruction = document.getElementById('upload-instruction');
+  const uploadedFilesContainer = document.getElementById('uploaded-files');
+  const uploadedFilesLabel = document.getElementById('uploaded-files-label');
 
   const zapierProxyUrl = "https://zapier-proxy.cumulusdigitalchicago.workers.dev/";
 
@@ -149,8 +171,8 @@
     [848, 480], [1200, 1200], [900, 1600]
   ];
 
-  // Store files user wants to upload here
   let filesToUpload = [];
+  let uploadedFiles = [];
 
   dropArea.addEventListener('click', () => fileInput.click());
 
@@ -180,9 +202,7 @@
     btn.className = 'remove-btn';
     btn.title = 'Remove this file';
     btn.onclick = () => {
-      // Remove from UI
       results.removeChild(resultDiv);
-      // Remove from filesToUpload array
       filesToUpload.splice(fileIndex, 1);
       updateUploadButton();
       reIndexFiles();
@@ -191,7 +211,6 @@
   }
 
   function reIndexFiles() {
-    // Reset remove button handlers with correct indices
     Array.from(results.children).forEach((div, index) => {
       const btn = div.querySelector('.remove-btn');
       if (btn) {
@@ -209,6 +228,18 @@
     const validCount = filesToUpload.filter(f => f.valid).length;
     uploadBtn.disabled = validCount === 0;
     uploadBtn.textContent = `Upload Files (${validCount})`;
+    if(uploadBtn.classList.contains('success')) {
+      uploadBtn.classList.remove('success');
+      uploadInstruction.textContent = 'You must click “Upload Files” to submit your ads and move forward.';
+    }
+  }
+
+  function addUploadedFile(fileInfo) {
+    const div = document.createElement('div');
+    div.className = 'uploaded-file';
+    div.textContent = `${fileInfo.name} (${Math.round(fileInfo.size/1024)} KB)`;
+    uploadedFilesContainer.appendChild(div);
+    uploadedFilesLabel.style.display = 'block';
   }
 
   function handleFiles(fileList) {
@@ -216,45 +247,37 @@
       const fileName = file.name;
       const sizeKB = Math.round(file.size / 1024);
 
-      // Create container div for this file
       const resultDiv = document.createElement('div');
       resultDiv.classList.add('file-result');
 
-      // Preview container
       const previewDiv = document.createElement('div');
       previewDiv.className = 'file-preview';
 
-      // Info container
       const infoDiv = document.createElement('div');
       infoDiv.className = 'file-info';
 
-      // Validate file type
       if (!allowedTypes.includes(file.type)) {
         resultDiv.classList.add('error');
         infoDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Invalid file type`;
         resultDiv.appendChild(infoDiv);
         results.insertBefore(resultDiv, results.firstChild);
-        return; // Don't add invalid files to upload list
+        return;
       }
-      // Validate file size
       if (file.size > maxSize) {
         resultDiv.classList.add('error');
         infoDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Too large (${sizeKB} KB). Max 500 KB`;
         resultDiv.appendChild(infoDiv);
         results.insertBefore(resultDiv, results.firstChild);
-        return; // Don't add invalid files to upload list
+        return;
       }
 
-      // Temporarily add to filesToUpload with invalid dimension flag
       let fileObj = { file, valid: false };
       filesToUpload.push(fileObj);
       const currentIndex = filesToUpload.length - 1;
 
-      // Create remove button
       const removeBtn = createRemoveBtn(resultDiv, currentIndex);
       resultDiv.appendChild(removeBtn);
 
-      // Check image dimensions asynchronously
       const img = new Image();
       img.src = URL.createObjectURL(file);
       img.onload = () => {
@@ -263,14 +286,12 @@
         if (!matches) {
           resultDiv.classList.add('error');
           infoDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Invalid dimensions: ${img.width}x${img.height}`;
-          // Mark file invalid so it won't upload
           fileObj.valid = false;
           updateUploadButton();
           results.insertBefore(resultDiv, results.firstChild);
           return;
         }
 
-        // Passed all validation
         resultDiv.classList.add('success');
         infoDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
 
@@ -306,13 +327,12 @@
     let failCount = 0;
 
     for (const fileObj of filesToUpload) {
-      if (!fileObj.valid) continue; // Skip invalid files
+      if (!fileObj.valid) continue;
 
       try {
         const fileInfo = await uploadcare.fileFrom('object', fileObj.file);
         await fileInfo.done();
 
-        // Send metadata to Zapier proxy
         await fetch(zapierProxyUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -332,21 +352,27 @@
             data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
           })
         });
+
         successCount++;
+        uploadedFiles.push(fileObj.file);
+        addUploadedFile(fileObj.file);
+
       } catch {
         failCount++;
       }
     }
 
-    uploadBtn.textContent = `Upload Files (${successCount})`;
-    alert(`Upload complete! ${successCount} file(s) uploaded, ${failCount} failed.`);
-
-    // Optionally clear uploaded files or disable upload to prevent duplicates
-    // Here we clear all to avoid re-uploads
     filesToUpload = [];
     results.innerHTML = '';
     updateUploadButton();
+
+    // Show success and reset button
+    uploadBtn.textContent = `Upload Successful ✓ Add More Files`;
+    uploadBtn.classList.add('success');
+    uploadInstruction.textContent = 'You can add more files or continue to the next step.';
+    uploadBtn.disabled = false;
   });
 </script>
+
 </body>
 </html>
