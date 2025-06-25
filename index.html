@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>File Upload</title>
+  <title>Display Asset Upload</title>
 
   <script>
     UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
@@ -19,17 +19,20 @@
       align-items: center;
     }
 
-    #upload-btn {
-      padding: 12px 24px;
-      font-size: 16px;
-      background: #0073e6;
-      color: white;
-      border: none;
+    .drop-area {
+      border: 2px dashed #0073e6;
       border-radius: 6px;
-      cursor: pointer;
-      width: 100%;
+      padding: 2rem;
+      text-align: center;
+      color: #0073e6;
       max-width: 720px;
+      width: 100%;
+      cursor: pointer;
       margin-bottom: 1.5rem;
+    }
+
+    .drop-area.dragover {
+      background: #f0f8ff;
     }
 
     #file-results {
@@ -42,7 +45,6 @@
 
     .file-result {
       display: flex;
-      flex-direction: row;
       align-items: center;
       justify-content: space-between;
       padding: 1rem;
@@ -97,174 +99,137 @@
 </head>
 <body>
 
-  <button id="upload-btn">File Upload</button>
+  <div class="drop-area" id="drop-area">Drag & drop images here or click to select</div>
+  <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif" multiple style="display: none;" />
   <div id="file-results"></div>
 
   <script>
-    const requiredDimensions = [
-      [300, 250], [728, 90], [300, 600], [160, 600],
-      [320, 50], [320, 480]
-    ];
-    const additionalDimensions = [
-      [336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]
-    ];
-    const allowedDimensions = [...requiredDimensions, ...additionalDimensions];
-    const imageTypes = ['image/png', 'image/jpeg', 'image/gif'];
-    const zipType = 'application/zip';
-    const maxImageSize = 500 * 1024;
-    const maxZipSize = 1024 * 1024;
-
-    const uploadBtn = document.getElementById('upload-btn');
+    const dropArea = document.getElementById('drop-area');
+    const fileInput = document.getElementById('file-input');
     const results = document.getElementById('file-results');
     const zapierProxyUrl = "https://zapier-proxy.cumulusdigitalchicago.workers.dev/";
 
-    function createRemoveBtn() {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    const maxSize = 500 * 1024;
+    const allowedDimensions = [
+      [300, 250], [728, 90], [300, 600], [160, 600],
+      [320, 50], [320, 480], [336, 280], [768, 1024],
+      [848, 480], [1200, 1200], [900, 1600]
+    ];
+
+    dropArea.addEventListener('click', () => fileInput.click());
+
+    dropArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropArea.classList.add('dragover');
+    });
+
+    dropArea.addEventListener('dragleave', () => {
+      dropArea.classList.remove('dragover');
+    });
+
+    dropArea.addEventListener('drop', e => {
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', e => {
+      handleFiles(e.target.files);
+      fileInput.value = '';
+    });
+
+    function createRemoveBtn(resultDiv) {
       const btn = document.createElement('button');
       btn.textContent = '×';
       btn.className = 'remove-btn';
       btn.title = 'Remove this file';
+      btn.onclick = () => results.removeChild(resultDiv);
       return btn;
     }
 
-    uploadBtn.addEventListener('click', () => {
-      const dialog = uploadcare.openDialog(null, {
-        multiple: true,
-        multipleMax: 50,
-        tabs: 'file',
-        inputAcceptTypes: 'image/png,image/jpeg,image/gif,application/zip'
-      });
+    function handleFiles(fileList) {
+      [...fileList].forEach(file => {
+        const resultDiv = document.createElement('div');
+        resultDiv.classList.add('file-result');
 
-      dialog.done(async (filesPromise) => {
-        const files = await filesPromise.files();
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'file-preview';
 
-        for (const filePromise of files) {
-          const fileInfo = await filePromise;
-          const fileName = fileInfo.name;
-          const mimeType = fileInfo.mimeType;
-          const sizeKB = Math.round(fileInfo.size / 1024);
+        const detailsDiv = document.createElement('div');
+        detailsDiv.className = 'file-details';
 
-          const resultDiv = document.createElement('div');
-          resultDiv.classList.add('file-result');
+        const removeBtn = createRemoveBtn(resultDiv);
+        resultDiv.appendChild(removeBtn);
 
-          const previewDiv = document.createElement('div');
-          previewDiv.className = 'file-preview';
+        const fileName = file.name;
+        const sizeKB = Math.round(file.size / 1024);
 
-          const detailsDiv = document.createElement('div');
-          detailsDiv.className = 'file-details';
-
-          const removeBtn = createRemoveBtn();
-          removeBtn.onclick = () => results.removeChild(resultDiv);
-          resultDiv.appendChild(removeBtn);
-
-          try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const campaignId = urlParams.get("campaign_id") || "MISSING";
-            const orderNumber = urlParams.get("order_number") || "MISSING";
-            const client = urlParams.get("client") || "MISSING";
-            const querystringPresent = urlParams.toString() ? "YES" : "NO";
-
-            // Determine file format with fallback
-            const format = fileInfo.format
-              ? fileInfo.format.toUpperCase()
-              : (fileInfo.mimeType ? fileInfo.mimeType.split('/')[1].toUpperCase() : 'UNKNOWN');
-
-            // Get upload datetime from originalImageInfo or fallback to createdAt
-            const datetimeUploaded = new Date().toISOString();
-
-            if (imageTypes.includes(mimeType)) {
-              if (fileInfo.size > maxImageSize) {
-                throw new Error(`Too large (${sizeKB} KB). Max is 500 KB.`);
-              }
-
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              img.src = fileInfo.cdnUrl;
-
-              await new Promise((resolve, reject) => {
-                img.onload = () => {
-                  const matches = allowedDimensions.some(([w, h]) => img.width === w && img.height === h);
-                  if (!matches) {
-                    reject(new Error(`Incorrect size: ${img.width}x${img.height}`));
-                  } else {
-                    previewDiv.appendChild(img);
-                    resolve();
-                  }
-                };
-                img.onerror = () => reject(new Error(`Could not verify dimensions.`));
-              });
-
+        if (!allowedTypes.includes(file.type)) {
+          resultDiv.classList.add('error');
+          detailsDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Invalid file type`;
+        } else if (file.size > maxSize) {
+          resultDiv.classList.add('error');
+          detailsDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Too large (${sizeKB} KB). Max 500 KB`;
+        } else {
+          const img = new Image();
+          img.src = URL.createObjectURL(file);
+          img.onload = () => {
+            const matches = allowedDimensions.some(([w, h]) => img.width === w && img.height === h);
+            if (!matches) {
+              resultDiv.classList.add('error');
+              detailsDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Invalid dimensions: ${img.width}x${img.height}`;
+            } else {
               resultDiv.classList.add('success');
+              previewDiv.appendChild(img);
               detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
 
-              // Send metadata along with file info to Zapier proxy
-              fetch(zapierProxyUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  campaign_id: campaignId,
-                  order_number: orderNumber,
-                  client: client,
-                  querystring: querystringPresent,
-                  file_url: fileInfo.cdnUrl,
-                  file_name: fileName,
-                  file_size_kb: sizeKB,
-                  data_datetime_uploaded: datetimeUploaded,
-                  data_uuid: fileInfo.uuid,
-                  data_original_file_url: fileInfo.cdnUrl,
-                  data_content_info_image_format: format,
-                  data_content_info_image_width: fileInfo.originalImageInfo?.width || 'UNKNOWN',
-                  data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
-                })
+              // Only upload after validation success
+              uploadcare.fileFrom('object', file).done(fileInfo => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const campaignId = urlParams.get("campaign_id") || "MISSING";
+                const orderNumber = urlParams.get("order_number") || "MISSING";
+                const client = urlParams.get("client") || "MISSING";
+                const querystringPresent = urlParams.toString() ? "YES" : "NO";
+
+                fetch(zapierProxyUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    campaign_id: campaignId,
+                    order_number: orderNumber,
+                    client: client,
+                    querystring: querystringPresent,
+                    file_url: fileInfo.cdnUrl,
+                    file_name: fileName,
+                    file_size_kb: sizeKB,
+                    data_datetime_uploaded: new Date().toISOString(),
+                    data_uuid: fileInfo.uuid,
+                    data_original_file_url: fileInfo.cdnUrl,
+                    data_content_info_image_format: fileInfo.format || file.type.split('/')[1].toUpperCase(),
+                    data_content_info_image_width: fileInfo.originalImageInfo?.width || img.width,
+                    data_content_info_image_height: fileInfo.originalImageInfo?.height || img.height
+                  })
+                });
               });
-
-            } else if (mimeType === zipType) {
-              if (fileInfo.size > maxZipSize) {
-                throw new Error(`ZIP too large (${sizeKB} KB). Max 1 MB.`);
-              }
-
-              resultDiv.classList.add('success');
-              detailsDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid HTML5 ZIP (${sizeKB} KB)`;
-
-              // Send metadata along with file info to Zapier proxy
-              fetch(zapierProxyUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  campaign_id: campaignId,
-                  order_number: orderNumber,
-                  client: client,
-                  querystring: querystringPresent,
-                  file_url: fileInfo.cdnUrl,
-                  file_name: fileName,
-                  file_size_kb: sizeKB,
-                  data_datetime_uploaded: datetimeUploaded,
-                  data_uuid: fileInfo.uuid,
-                  data_original_file_url: fileInfo.cdnUrl,
-                  data_content_info_image_format: format,
-                  data_content_info_image_width: fileInfo.originalImageInfo?.width || 'UNKNOWN',
-                  data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
-                })
-              });
-
-            } else {
-              throw new Error(`Unsupported file type.`);
             }
-          } catch (err) {
+          };
+          img.onerror = () => {
             resultDiv.classList.add('error');
-            detailsDiv.innerHTML = `<strong>${fileName}</strong><br>❌ ${err.message}`;
-          }
+            detailsDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Could not load image preview`;
+          };
+        }
 
-          resultDiv.appendChild(previewDiv);
-          resultDiv.appendChild(detailsDiv);
+        resultDiv.appendChild(previewDiv);
+        resultDiv.appendChild(detailsDiv);
 
-          if (resultDiv.classList.contains('error')) {
-            results.insertBefore(resultDiv, results.firstChild);
-          } else {
-            results.appendChild(resultDiv);
-          }
+        if (resultDiv.classList.contains('error')) {
+          results.insertBefore(resultDiv, results.firstChild);
+        } else {
+          results.appendChild(resultDiv);
         }
       });
-    });
+    }
   </script>
 </body>
 </html>
