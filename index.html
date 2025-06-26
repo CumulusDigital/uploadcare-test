@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Display Asset Upload</title>
+  <title>Display Ad Upload</title>
   <script>
     UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
   </script>
@@ -11,7 +11,7 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background: #fff;
+      background: #f9f9f9;
       padding: 2rem;
       display: flex;
       flex-direction: column;
@@ -24,320 +24,340 @@
       padding: 2rem;
       text-align: center;
       color: #0073e6;
-      max-width: 720px;
+      background: #ffffff;
       width: 100%;
+      max-width: 720px;
       cursor: pointer;
-      margin-bottom: 0.5rem;
-      user-select: none;
-    }
-
-    .drop-area.dragover {
-      background: #f0f8ff;
     }
 
     #instruction {
-      font-weight: bold;
       color: #cc0000;
-      margin: 0.5rem 0 1rem;
+      font-weight: bold;
+      margin: 0.75rem 0;
       text-align: center;
     }
 
     #upload-btn {
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 600;
       background: #0073e6;
       color: white;
       border: none;
       border-radius: 6px;
-      padding: 12px 24px;
-      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 1.5rem;
       width: 100%;
       max-width: 720px;
-      cursor: pointer;
-      font-weight: 600;
-      margin-bottom: 1rem;
       transition: background 0.3s ease;
     }
 
+    #upload-btn:hover {
+      background: #005bb5;
+    }
+
     #upload-btn:disabled {
-      background: #a0c4ff;
+      background: #cccccc;
       cursor: not-allowed;
     }
 
-    #upload-btn.success {
-      background: #28a745;
-    }
-
-    #file-count {
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: #333;
-    }
-
-    #file-results, #uploaded-files {
+    .file-list {
       width: 100%;
       max-width: 720px;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-bottom: 1rem;
     }
 
-    .file-result, .uploaded-file {
-      display: flex;
-      align-items: center;
+    .file-item {
+      background: #fff;
+      border-left: 4px solid transparent;
       padding: 1rem;
       border-radius: 6px;
-      background: #f9f9f9;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       position: relative;
     }
 
-    .file-result.success {
-      border-left: 4px solid #28a745;
-      color: #155724;
+    .file-item.valid {
+      border-left-color: #28a745;
     }
 
-    .file-result.error {
-      border-left: 4px solid #dc3545;
+    .file-item.invalid {
+      border-left-color: #dc3545;
       color: #b30000;
-    }
-
-    .file-preview img {
-      max-height: 80px;
-      max-width: 120px;
-      object-fit: contain;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: white;
-      padding: 4px;
-      margin-right: 1rem;
-      flex-shrink: 0;
-    }
-
-    .file-info {
-      flex-grow: 1;
     }
 
     .remove-btn {
       background: #ff4c4c;
-      border: none;
       color: white;
+      border: none;
+      border-radius: 50%;
       width: 24px;
       height: 24px;
-      border-radius: 50%;
+      font-size: 16px;
       font-weight: bold;
       cursor: pointer;
-      line-height: 20px;
-      font-size: 16px;
       position: absolute;
-      top: 6px;
-      right: 6px;
+      top: 8px;
+      right: 8px;
     }
 
     #success-banner {
       display: none;
-      background-color: #e6ffed;
+      background: #e6ffed;
       border: 1px solid #28a745;
       color: #155724;
       padding: 0.75rem;
-      font-weight: 500;
-      border-radius: 6px;
       margin-bottom: 1rem;
-      max-width: 720px;
+      border-radius: 6px;
       width: 100%;
+      max-width: 720px;
       text-align: center;
     }
 
-    #uploaded-files-label {
-      font-weight: 600;
-      color: #0073e6;
-      margin-bottom: 0.5rem;
-      max-width: 720px;
+    #uploaded-files {
+      margin-top: 1rem;
       width: 100%;
+      max-width: 720px;
+      font-size: 14px;
+      color: #333;
+      display: none;
+    }
+
+    #uploaded-files h4 {
+      margin-bottom: 0.5rem;
+      color: #0073e6;
+    }
+
+    .uploaded-entry {
+      margin-bottom: 4px;
     }
   </style>
 </head>
 <body>
 
   <div class="drop-area" id="drop-area">
-    Drag & drop your images here, or click to select<br />
-    <small>(Only JPG, PNG, GIF up to 500 KB)</small>
+    Drag & drop your files here or click to select<br />
+    <small>(Only JPG, PNG, or GIF under 500 KB)</small>
   </div>
 
   <div id="instruction">🔴 You must click ‘Upload Files’ to submit your ads.</div>
 
   <button id="upload-btn" disabled>Upload Files (0)</button>
-  <div id="file-count"></div>
-
-  <div id="file-results"></div>
 
   <div id="success-banner">✅ Files uploaded successfully.</div>
 
-  <div id="uploaded-files-label" style="display:none;">Uploaded Files:</div>
-  <div id="uploaded-files"></div>
+  <div class="file-list" id="file-list"></div>
 
-  <script>
-    const dropArea = document.getElementById('drop-area');
-    const uploadBtn = document.getElementById('upload-btn');
-    const results = document.getElementById('file-results');
-    const successBanner = document.getElementById('success-banner');
-    const fileCount = document.getElementById('file-count');
-    const uploadedFilesContainer = document.getElementById('uploaded-files');
-    const uploadedFilesLabel = document.getElementById('uploaded-files-label');
+  <div id="uploaded-files">
+    <h4>✅ Uploaded Files:</h4>
+    <div id="uploaded-list"></div>
+  </div>
 
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
-    const maxSize = 500 * 1024;
-    const allowedDimensions = [
-      [300, 250], [728, 90], [300, 600], [160, 600],
-      [320, 50], [320, 480], [336, 280], [768, 1024],
-      [848, 480], [1200, 1200], [900, 1600]
-    ];
+<script>
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+  const maxSize = 500 * 1024; // 500 KB
+  const requiredDimensions = [
+    [300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]
+  ];
+  const additionalDimensions = [
+    [336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]
+  ];
+  const allowedDimensions = requiredDimensions.concat(additionalDimensions);
 
-    let filesToUpload = [];
+  const dropArea = document.getElementById('drop-area');
+  const uploadBtn = document.getElementById('upload-btn');
+  const fileList = document.getElementById('file-list');
+  const successBanner = document.getElementById('success-banner');
+  const uploadedFilesSection = document.getElementById('uploaded-files');
+  const uploadedList = document.getElementById('uploaded-list');
 
-    dropArea.addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = allowedTypes.join(',');
-      input.multiple = true;
-      input.onchange = () => handleFiles(input.files);
-      input.click();
-    });
+  let filesToUpload = [];
+  let uploadedFiles = [];
 
-    dropArea.addEventListener('dragover', e => {
-      e.preventDefault();
-      dropArea.classList.add('dragover');
-    });
+  function formatBytes(bytes) {
+    return (bytes / 1024).toFixed(0) + ' KB';
+  }
 
-    dropArea.addEventListener('dragleave', () => {
-      dropArea.classList.remove('dragover');
-    });
+  function formatTime(date) {
+    return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  }
 
-    dropArea.addEventListener('drop', e => {
-      e.preventDefault();
-      dropArea.classList.remove('dragover');
+  function validateFile(file, image) {
+    // Validate type
+    if (!allowedTypes.includes(file.type)) {
+      return 'Unsupported file type.';
+    }
+    // Validate size
+    if (file.size > maxSize) {
+      return `File too large (${formatBytes(file.size)}). Max is 500 KB.`;
+    }
+    // Validate dimensions
+    if (image) {
+      const matches = allowedDimensions.some(([w, h]) => image.width === w && image.height === h);
+      if (!matches) {
+        return `Invalid dimensions: ${image.width}x${image.height}. Must match required or optional sizes.`;
+      }
+    }
+    return null;
+  }
+
+  function createFileItem(file, valid, errorMessage = '') {
+    const div = document.createElement('div');
+    div.className = 'file-item ' + (valid ? 'valid' : 'invalid');
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = file.name;
+    div.appendChild(nameSpan);
+
+    const detailSpan = document.createElement('span');
+    detailSpan.style.marginLeft = '1rem';
+    if (valid) {
+      detailSpan.textContent = `✅ Valid image (${formatBytes(file.size)})`;
+    } else {
+      detailSpan.textContent = `❌ ${errorMessage}`;
+    }
+    div.appendChild(detailSpan);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.textContent = '×';
+    removeBtn.title = 'Remove this file';
+    removeBtn.onclick = () => {
+      if (valid) {
+        filesToUpload = filesToUpload.filter(f => f !== file);
+      }
+      fileList.removeChild(div);
+      updateUploadButton();
+    };
+    div.appendChild(removeBtn);
+
+    return div;
+  }
+
+  function updateUploadButton() {
+    uploadBtn.disabled = filesToUpload.length === 0;
+    uploadBtn.textContent = `Upload Files (${filesToUpload.length})`;
+  }
+
+  dropArea.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = allowedTypes.join(',');
+    input.multiple = true;
+    input.onchange = () => {
+      handleFiles(input.files);
+    };
+    input.click();
+  });
+
+  dropArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropArea.style.backgroundColor = '#e6f0ff';
+  });
+
+  dropArea.addEventListener('dragleave', () => {
+    dropArea.style.backgroundColor = '#fff';
+  });
+
+  dropArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropArea.style.backgroundColor = '#fff';
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFiles(e.dataTransfer.files);
-    });
-
-    function handleFiles(fileList) {
-      [...fileList].forEach(file => {
-        const resultDiv = document.createElement('div');
-        resultDiv.className = 'file-result';
-
-        const preview = document.createElement('div');
-        preview.className = 'file-preview';
-
-        const info = document.createElement('div');
-        info.className = 'file-info';
-
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'remove-btn';
-        removeBtn.innerHTML = '×';
-
-        removeBtn.onclick = () => {
-          results.removeChild(resultDiv);
-          filesToUpload = filesToUpload.filter(f => f !== file);
-          updateUploadBtn();
-        };
-
-        const sizeKB = Math.round(file.size / 1024);
-        if (!allowedTypes.includes(file.type)) {
-          resultDiv.classList.add('error');
-          info.innerHTML = `<strong>${file.name}</strong><br>❌ Invalid file type`;
-        } else if (file.size > maxSize) {
-          resultDiv.classList.add('error');
-          info.innerHTML = `<strong>${file.name}</strong><br>❌ Too large (${sizeKB} KB)`;
-        } else {
-          const img = new Image();
-          img.src = URL.createObjectURL(file);
-          img.onload = () => {
-            const valid = allowedDimensions.some(([w, h]) => img.width === w && img.height === h);
-            if (!valid) {
-              resultDiv.classList.add('error');
-              info.innerHTML = `<strong>${file.name}</strong><br>❌ Invalid dimensions: ${img.width}x${img.height}`;
-            } else {
-              resultDiv.classList.add('success');
-              preview.appendChild(img);
-              info.innerHTML = `<strong>${file.name}</strong><br>✅ Ready to upload (${sizeKB} KB)`;
-              filesToUpload.push(file);
-              updateUploadBtn();
-            }
-          };
-        }
-
-        resultDiv.appendChild(removeBtn);
-        resultDiv.appendChild(preview);
-        resultDiv.appendChild(info);
-        results.appendChild(resultDiv);
-      });
+      e.dataTransfer.clearData();
     }
+  });
 
-    function updateUploadBtn() {
-      const count = filesToUpload.length;
-      uploadBtn.disabled = count === 0;
-      uploadBtn.textContent = `Upload Files (${count})`;
-      fileCount.textContent = count > 0 ? `${count} file${count > 1 ? 's' : ''} ready to upload` : '';
-    }
-
-    uploadBtn.addEventListener('click', async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const campaignId = urlParams.get("campaign_id") || "MISSING";
-      const orderNumber = urlParams.get("order_number") || "MISSING";
-      const client = urlParams.get("client") || "MISSING";
-      const querystringPresent = urlParams.toString() ? "YES" : "NO";
-
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = "Uploading...";
-
-      for (const file of filesToUpload) {
-        try {
-          const fileInfo = await uploadcare.fileFrom('object', file);
-          await fileInfo.done();
-
-          await fetch("https://zapier-proxy.cumulusdigitalchicago.workers.dev/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              campaign_id: campaignId,
-              order_number: orderNumber,
-              client: client,
-              querystring: querystringPresent,
-              file_url: fileInfo.cdnUrl,
-              file_name: file.name,
-              file_size_kb: Math.round(file.size / 1024),
-              data_datetime_uploaded: new Date().toISOString(),
-              data_uuid: fileInfo.uuid,
-              data_original_file_url: fileInfo.cdnUrl,
-              data_content_info_image_format: file.type.split('/')[1].toUpperCase(),
-              data_content_info_image_width: fileInfo.originalImageInfo?.width || 'UNKNOWN',
-              data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
-            })
-          });
-
-          const uploadedDiv = document.createElement('div');
-          uploadedDiv.className = 'uploaded-file';
-          const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-          uploadedDiv.textContent = `${file.name} (${Math.round(file.size / 1024)} KB) — Uploaded at ${time}`;
-          uploadedFilesContainer.appendChild(uploadedDiv);
-          uploadedFilesLabel.style.display = 'block';
-
-        } catch (e) {
-          console.error('Upload failed', e);
-        }
+  function handleFiles(fileListRaw) {
+    Array.from(fileListRaw).forEach(file => {
+      if (filesToUpload.includes(file)) return; // avoid duplicates
+      if (!allowedTypes.includes(file.type)) {
+        // Add rejected file immediately with reason
+        const div = createFileItem(file, false, 'Unsupported file type.');
+        fileList.insertBefore(div, fileList.firstChild);
+        return;
       }
 
-      filesToUpload = [];
-      results.innerHTML = '';
-      updateUploadBtn();
-
-      uploadBtn.classList.add('success');
-      uploadBtn.textContent = "✅ Upload Successful";
-
-      successBanner.style.display = 'block';
-      setTimeout(() => {
-        successBanner.style.display = 'none';
-      }, 5000);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const error = validateFile(file, img);
+          const div = createFileItem(file, !error, error);
+          if (error) {
+            fileList.insertBefore(div, fileList.firstChild);
+          } else {
+            filesToUpload.push(file);
+            fileList.appendChild(div);
+          }
+          updateUploadButton();
+        };
+        img.onerror = () => {
+          // Could not load image, reject
+          const div = createFileItem(file, false, 'Could not read image dimensions.');
+          fileList.insertBefore(div, fileList.firstChild);
+          updateUploadButton();
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
     });
-  </script>
+  }
+
+  uploadBtn.addEventListener('click', () => {
+    if (filesToUpload.length === 0) return;
+
+    // Simulate upload delay
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+
+    // Simulated upload logic (replace with actual upload logic)
+    setTimeout(() => {
+      filesToUpload.forEach(file => {
+        // Add to uploadedFiles with timestamp
+        uploadedFiles.push({
+          name: file.name,
+          size: file.size,
+          time: formatTime(new Date())
+        });
+      });
+
+      // Clear filesToUpload and UI list
+      filesToUpload = [];
+      fileList.innerHTML = '';
+
+      updateUploadButton();
+      showUploadedFiles();
+      showSuccessBanner();
+    }, 1000);
+  });
+
+  function showUploadedFiles() {
+    if (uploadedFiles.length === 0) {
+      uploadedFilesSection.style.display = 'none';
+      return;
+    }
+    uploadedFilesSection.style.display = 'block';
+    uploadedList.innerHTML = '';
+    uploadedFiles.forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'uploaded-entry';
+      div.textContent = `• ${f.name} (${formatBytes(f.size)}) — Uploaded at ${f.time}`;
+      uploadedList.appendChild(div);
+    });
+  }
+
+  function showSuccessBanner() {
+    successBanner.style.display = 'block';
+    setTimeout(() => {
+      successBanner.style.display = 'none';
+    }, 4000);
+  }
+</script>
+
 </body>
 </html>
