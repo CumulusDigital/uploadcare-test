@@ -17,6 +17,7 @@
       flex-direction: column;
       align-items: center;
     }
+
     .drop-area {
       border: 2px dashed #0073e6;
       border-radius: 6px;
@@ -26,21 +27,21 @@
       max-width: 720px;
       width: 100%;
       cursor: pointer;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0.5rem;
       user-select: none;
     }
+
     .drop-area.dragover {
       background: #f0f8ff;
     }
-    #upload-controls {
-      max-width: 720px;
-      width: 100%;
-      margin-bottom: 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
+
+    #instruction {
+      font-weight: bold;
+      color: #cc0000;
+      margin: 0.5rem 0 1rem;
+      text-align: center;
     }
+
     #upload-btn {
       background: #0073e6;
       color: white;
@@ -52,24 +53,25 @@
       max-width: 720px;
       cursor: pointer;
       font-weight: 600;
-      user-select: none;
+      margin-bottom: 1rem;
       transition: background 0.3s ease;
     }
+
     #upload-btn:disabled {
       background: #a0c4ff;
       cursor: not-allowed;
     }
+
     #upload-btn.success {
       background: #28a745;
-      cursor: pointer;
     }
-    #upload-instruction {
-      font-size: 13px;
-      color: #555;
-      font-style: italic;
-      text-align: center;
-      user-select: none;
+
+    #file-count {
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #333;
     }
+
     #file-results, #uploaded-files {
       width: 100%;
       max-width: 720px;
@@ -78,6 +80,7 @@
       gap: 12px;
       margin-bottom: 1rem;
     }
+
     .file-result, .uploaded-file {
       display: flex;
       align-items: center;
@@ -88,14 +91,17 @@
       font-size: 14px;
       position: relative;
     }
+
     .file-result.success {
       border-left: 4px solid #28a745;
       color: #155724;
     }
+
     .file-result.error {
       border-left: 4px solid #dc3545;
       color: #b30000;
     }
+
     .file-preview img {
       max-height: 80px;
       max-width: 120px;
@@ -107,9 +113,11 @@
       margin-right: 1rem;
       flex-shrink: 0;
     }
+
     .file-info {
       flex-grow: 1;
     }
+
     .remove-btn {
       background: #ff4c4c;
       border: none;
@@ -125,6 +133,21 @@
       top: 6px;
       right: 6px;
     }
+
+    #success-banner {
+      display: none;
+      background-color: #e6ffed;
+      border: 1px solid #28a745;
+      color: #155724;
+      padding: 0.75rem;
+      font-weight: 500;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      max-width: 720px;
+      width: 100%;
+      text-align: center;
+    }
+
     #uploaded-files-label {
       font-weight: 600;
       color: #0073e6;
@@ -136,243 +159,185 @@
 </head>
 <body>
 
-  <div id="upload-controls">
-    <button id="upload-btn" disabled>Upload Files (0)</button>
-    <div id="upload-instruction">You must click “Upload Files” to submit your ads and move forward.</div>
-  </div>
-
   <div class="drop-area" id="drop-area">
     Drag & drop your images here, or click to select<br />
     <small>(Only JPG, PNG, GIF up to 500 KB)</small>
   </div>
-  <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif" multiple style="display:none;" />
+
+  <div id="instruction">🔴 You must click ‘Upload Files’ to submit your ads.</div>
+
+  <button id="upload-btn" disabled>Upload Files (0)</button>
+  <div id="file-count"></div>
 
   <div id="file-results"></div>
+
+  <div id="success-banner">✅ Files uploaded successfully.</div>
 
   <div id="uploaded-files-label" style="display:none;">Uploaded Files:</div>
   <div id="uploaded-files"></div>
 
-<script>
-  const dropArea = document.getElementById('drop-area');
-  const fileInput = document.getElementById('file-input');
-  const results = document.getElementById('file-results');
-  const uploadBtn = document.getElementById('upload-btn');
-  const uploadInstruction = document.getElementById('upload-instruction');
-  const uploadedFilesContainer = document.getElementById('uploaded-files');
-  const uploadedFilesLabel = document.getElementById('uploaded-files-label');
+  <script>
+    const dropArea = document.getElementById('drop-area');
+    const uploadBtn = document.getElementById('upload-btn');
+    const results = document.getElementById('file-results');
+    const successBanner = document.getElementById('success-banner');
+    const fileCount = document.getElementById('file-count');
+    const uploadedFilesContainer = document.getElementById('uploaded-files');
+    const uploadedFilesLabel = document.getElementById('uploaded-files-label');
 
-  const zapierProxyUrl = "https://zapier-proxy.cumulusdigitalchicago.workers.dev/";
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    const maxSize = 500 * 1024;
+    const allowedDimensions = [
+      [300, 250], [728, 90], [300, 600], [160, 600],
+      [320, 50], [320, 480], [336, 280], [768, 1024],
+      [848, 480], [1200, 1200], [900, 1600]
+    ];
 
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
-  const maxSize = 500 * 1024;
-  const allowedDimensions = [
-    [300, 250], [728, 90], [300, 600], [160, 600],
-    [320, 50], [320, 480], [336, 280], [768, 1024],
-    [848, 480], [1200, 1200], [900, 1600]
-  ];
+    let filesToUpload = [];
 
-  let filesToUpload = [];
-  let uploadedFiles = [];
-
-  dropArea.addEventListener('click', () => fileInput.click());
-
-  dropArea.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropArea.classList.add('dragover');
-  });
-
-  dropArea.addEventListener('dragleave', () => {
-    dropArea.classList.remove('dragover');
-  });
-
-  dropArea.addEventListener('drop', e => {
-    e.preventDefault();
-    dropArea.classList.remove('dragover');
-    handleFiles(e.dataTransfer.files);
-  });
-
-  fileInput.addEventListener('change', e => {
-    handleFiles(e.target.files);
-    fileInput.value = '';
-  });
-
-  function createRemoveBtn(resultDiv, fileIndex) {
-    const btn = document.createElement('button');
-    btn.textContent = '×';
-    btn.className = 'remove-btn';
-    btn.title = 'Remove this file';
-    btn.onclick = () => {
-      results.removeChild(resultDiv);
-      filesToUpload.splice(fileIndex, 1);
-      updateUploadButton();
-      reIndexFiles();
-    };
-    return btn;
-  }
-
-  function reIndexFiles() {
-    Array.from(results.children).forEach((div, index) => {
-      const btn = div.querySelector('.remove-btn');
-      if (btn) {
-        btn.onclick = () => {
-          results.removeChild(div);
-          filesToUpload.splice(index, 1);
-          updateUploadButton();
-          reIndexFiles();
-        };
-      }
+    dropArea.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = allowedTypes.join(',');
+      input.multiple = true;
+      input.onchange = () => handleFiles(input.files);
+      input.click();
     });
-  }
 
-  function updateUploadButton() {
-    const validCount = filesToUpload.filter(f => f.valid).length;
-    uploadBtn.disabled = validCount === 0;
-    uploadBtn.textContent = `Upload Files (${validCount})`;
-    if(uploadBtn.classList.contains('success')) {
-      uploadBtn.classList.remove('success');
-      uploadInstruction.textContent = 'You must click “Upload Files” to submit your ads and move forward.';
-    }
-  }
+    dropArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropArea.classList.add('dragover');
+    });
 
-  function addUploadedFile(fileInfo) {
-    const div = document.createElement('div');
-    div.className = 'uploaded-file';
-    div.textContent = `${fileInfo.name} (${Math.round(fileInfo.size/1024)} KB)`;
-    uploadedFilesContainer.appendChild(div);
-    uploadedFilesLabel.style.display = 'block';
-  }
+    dropArea.addEventListener('dragleave', () => {
+      dropArea.classList.remove('dragover');
+    });
 
-  function handleFiles(fileList) {
-    [...fileList].forEach(file => {
-      const fileName = file.name;
-      const sizeKB = Math.round(file.size / 1024);
+    dropArea.addEventListener('drop', e => {
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
 
-      const resultDiv = document.createElement('div');
-      resultDiv.classList.add('file-result');
+    function handleFiles(fileList) {
+      [...fileList].forEach(file => {
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'file-result';
 
-      const previewDiv = document.createElement('div');
-      previewDiv.className = 'file-preview';
+        const preview = document.createElement('div');
+        preview.className = 'file-preview';
 
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'file-info';
+        const info = document.createElement('div');
+        info.className = 'file-info';
 
-      if (!allowedTypes.includes(file.type)) {
-        resultDiv.classList.add('error');
-        infoDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Invalid file type`;
-        resultDiv.appendChild(infoDiv);
-        results.insertBefore(resultDiv, results.firstChild);
-        return;
-      }
-      if (file.size > maxSize) {
-        resultDiv.classList.add('error');
-        infoDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Too large (${sizeKB} KB). Max 500 KB`;
-        resultDiv.appendChild(infoDiv);
-        results.insertBefore(resultDiv, results.firstChild);
-        return;
-      }
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.innerHTML = '×';
 
-      let fileObj = { file, valid: false };
-      filesToUpload.push(fileObj);
-      const currentIndex = filesToUpload.length - 1;
+        removeBtn.onclick = () => {
+          results.removeChild(resultDiv);
+          filesToUpload = filesToUpload.filter(f => f !== file);
+          updateUploadBtn();
+        };
 
-      const removeBtn = createRemoveBtn(resultDiv, currentIndex);
-      resultDiv.appendChild(removeBtn);
-
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        const matches = allowedDimensions.some(([w, h]) => img.width === w && img.height === h);
-
-        if (!matches) {
+        const sizeKB = Math.round(file.size / 1024);
+        if (!allowedTypes.includes(file.type)) {
           resultDiv.classList.add('error');
-          infoDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Invalid dimensions: ${img.width}x${img.height}`;
-          fileObj.valid = false;
-          updateUploadButton();
-          results.insertBefore(resultDiv, results.firstChild);
-          return;
+          info.innerHTML = `<strong>${file.name}</strong><br>❌ Invalid file type`;
+        } else if (file.size > maxSize) {
+          resultDiv.classList.add('error');
+          info.innerHTML = `<strong>${file.name}</strong><br>❌ Too large (${sizeKB} KB)`;
+        } else {
+          const img = new Image();
+          img.src = URL.createObjectURL(file);
+          img.onload = () => {
+            const valid = allowedDimensions.some(([w, h]) => img.width === w && img.height === h);
+            if (!valid) {
+              resultDiv.classList.add('error');
+              info.innerHTML = `<strong>${file.name}</strong><br>❌ Invalid dimensions: ${img.width}x${img.height}`;
+            } else {
+              resultDiv.classList.add('success');
+              preview.appendChild(img);
+              info.innerHTML = `<strong>${file.name}</strong><br>✅ Ready to upload (${sizeKB} KB)`;
+              filesToUpload.push(file);
+              updateUploadBtn();
+            }
+          };
         }
 
-        resultDiv.classList.add('success');
-        infoDiv.innerHTML = `<strong>${fileName}</strong><br>✅ Valid image (${sizeKB} KB)`;
-
-        previewDiv.appendChild(img);
-        resultDiv.insertBefore(previewDiv, removeBtn);
-        resultDiv.appendChild(infoDiv);
-
-        fileObj.valid = true;
-        updateUploadButton();
+        resultDiv.appendChild(removeBtn);
+        resultDiv.appendChild(preview);
+        resultDiv.appendChild(info);
         results.appendChild(resultDiv);
-      };
-      img.onerror = () => {
-        resultDiv.classList.add('error');
-        infoDiv.innerHTML = `<strong>${fileName}</strong><br>❌ Could not load image preview`;
-        fileObj.valid = false;
-        updateUploadButton();
-        results.insertBefore(resultDiv, results.firstChild);
-      };
-    });
-  }
-
-  uploadBtn.addEventListener('click', async () => {
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = 'Uploading...';
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const campaignId = urlParams.get("campaign_id") || "MISSING";
-    const orderNumber = urlParams.get("order_number") || "MISSING";
-    const client = urlParams.get("client") || "MISSING";
-    const querystringPresent = urlParams.toString() ? "YES" : "NO";
-
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const fileObj of filesToUpload) {
-      if (!fileObj.valid) continue;
-
-      try {
-        const fileInfo = await uploadcare.fileFrom('object', fileObj.file);
-        await fileInfo.done();
-
-        await fetch(zapierProxyUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            campaign_id: campaignId,
-            order_number: orderNumber,
-            client: client,
-            querystring: querystringPresent,
-            file_url: fileInfo.cdnUrl,
-            file_name: fileInfo.name,
-            file_size_kb: Math.round(fileInfo.size / 1024),
-            data_datetime_uploaded: new Date().toISOString(),
-            data_uuid: fileInfo.uuid,
-            data_original_file_url: fileInfo.cdnUrl,
-            data_content_info_image_format: fileInfo.mimeType.split('/')[1].toUpperCase(),
-            data_content_info_image_width: fileInfo.originalImageInfo?.width || 'UNKNOWN',
-            data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
-          })
-        });
-
-        successCount++;
-        uploadedFiles.push(fileObj.file);
-        addUploadedFile(fileObj.file);
-
-      } catch {
-        failCount++;
-      }
+      });
     }
 
-    filesToUpload = [];
-    results.innerHTML = '';
-    updateUploadButton();
+    function updateUploadBtn() {
+      const count = filesToUpload.length;
+      uploadBtn.disabled = count === 0;
+      uploadBtn.textContent = `Upload Files (${count})`;
+      fileCount.textContent = count > 0 ? `${count} file${count > 1 ? 's' : ''} ready to upload` : '';
+    }
 
-    // Show success and reset button
-    uploadBtn.textContent = `Upload Successful ✓ Add More Files`;
-    uploadBtn.classList.add('success');
-    uploadInstruction.textContent = 'You can add more files or continue to the next step.';
-    uploadBtn.disabled = false;
-  });
-</script>
+    uploadBtn.addEventListener('click', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const campaignId = urlParams.get("campaign_id") || "MISSING";
+      const orderNumber = urlParams.get("order_number") || "MISSING";
+      const client = urlParams.get("client") || "MISSING";
+      const querystringPresent = urlParams.toString() ? "YES" : "NO";
 
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = "Uploading...";
+
+      for (const file of filesToUpload) {
+        try {
+          const fileInfo = await uploadcare.fileFrom('object', file);
+          await fileInfo.done();
+
+          await fetch("https://zapier-proxy.cumulusdigitalchicago.workers.dev/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              campaign_id: campaignId,
+              order_number: orderNumber,
+              client: client,
+              querystring: querystringPresent,
+              file_url: fileInfo.cdnUrl,
+              file_name: file.name,
+              file_size_kb: Math.round(file.size / 1024),
+              data_datetime_uploaded: new Date().toISOString(),
+              data_uuid: fileInfo.uuid,
+              data_original_file_url: fileInfo.cdnUrl,
+              data_content_info_image_format: file.type.split('/')[1].toUpperCase(),
+              data_content_info_image_width: fileInfo.originalImageInfo?.width || 'UNKNOWN',
+              data_content_info_image_height: fileInfo.originalImageInfo?.height || 'UNKNOWN'
+            })
+          });
+
+          const uploadedDiv = document.createElement('div');
+          uploadedDiv.className = 'uploaded-file';
+          const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+          uploadedDiv.textContent = `${file.name} (${Math.round(file.size / 1024)} KB) — Uploaded at ${time}`;
+          uploadedFilesContainer.appendChild(uploadedDiv);
+          uploadedFilesLabel.style.display = 'block';
+
+        } catch (e) {
+          console.error('Upload failed', e);
+        }
+      }
+
+      filesToUpload = [];
+      results.innerHTML = '';
+      updateUploadBtn();
+
+      uploadBtn.classList.add('success');
+      uploadBtn.textContent = "✅ Upload Successful";
+
+      successBanner.style.display = 'block';
+      setTimeout(() => {
+        successBanner.style.display = 'none';
+      }, 5000);
+    });
+  </script>
 </body>
 </html>
