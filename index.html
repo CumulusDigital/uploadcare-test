@@ -151,7 +151,7 @@
   </div>
 
   <div id="instruction">
-    Please add <em>all</em> your files first, then click the <strong>Upload Files</strong> button below to submit.
+    🔴 <strong>Don't forget to click “Upload Files” below to submit your ads.</strong>
   </div>
 
   <button id="upload-btn" disabled>Upload Files (0)</button>
@@ -163,191 +163,168 @@
     <div id="uploaded-list"></div>
   </div>
 
-<script>
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
-  const maxSize = 500 * 1024; // 500 KB
-  const requiredDimensions = [
-    [300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]
-  ];
-  const additionalDimensions = [
-    [336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]
-  ];
-  const allowedDimensions = requiredDimensions.concat(additionalDimensions);
+  <script>
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    const maxSize = 500 * 1024;
+    const requiredDimensions = [[300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]];
+    const additionalDimensions = [[336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]];
+    const allowedDimensions = requiredDimensions.concat(additionalDimensions);
 
-  const dropArea = document.getElementById('drop-area');
-  const uploadBtn = document.getElementById('upload-btn');
-  const fileList = document.getElementById('file-list');
-  const uploadedFilesSection = document.getElementById('uploaded-files');
-  const uploadedList = document.getElementById('uploaded-list');
+    const dropArea = document.getElementById('drop-area');
+    const uploadBtn = document.getElementById('upload-btn');
+    const fileList = document.getElementById('file-list');
+    const uploadedFilesSection = document.getElementById('uploaded-files');
+    const uploadedList = document.getElementById('uploaded-list');
 
-  let filesToUpload = [];
-  let uploadedFiles = [];
+    let filesToUpload = [];
+    let uploadedFiles = [];
 
-  function formatBytes(bytes) {
-    return (bytes / 1024).toFixed(0) + ' KB';
-  }
-
-  function validateFile(file, image) {
-    if (!allowedTypes.includes(file.type)) {
-      return 'Unsupported file type.';
+    function formatBytes(bytes) {
+      return (bytes / 1024).toFixed(0) + ' KB';
     }
-    if (file.size > maxSize) {
-      return `File too large (${formatBytes(file.size)}). Max is 500 KB.`;
-    }
-    if (image) {
+
+    function validateFile(file, image) {
+      if (!allowedTypes.includes(file.type)) return 'Unsupported file type.';
+      if (file.size > maxSize) return `File too large (${formatBytes(file.size)}).`;
       const matches = allowedDimensions.some(([w, h]) => image.width === w && image.height === h);
-      if (!matches) {
-        return `Invalid dimensions: ${image.width}x${image.height}.`;
+      if (!matches) return `Invalid dimensions: ${image.width}x${image.height}.`;
+      return null;
+    }
+
+    function createFileItem(file, valid, errorMessage = '', previewSrc = '') {
+      const div = document.createElement('div');
+      div.className = 'file-item ' + (valid ? 'valid' : 'invalid');
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = file.name;
+      div.appendChild(nameSpan);
+
+      if (previewSrc) {
+        const img = document.createElement('img');
+        img.src = previewSrc;
+        img.alt = file.name;
+        img.style.maxHeight = '50px';
+        img.style.marginLeft = '10px';
+        div.appendChild(img);
       }
+
+      const detailSpan = document.createElement('span');
+      detailSpan.style.marginLeft = '1rem';
+      detailSpan.textContent = valid ? `Valid (${formatBytes(file.size)})` : `❌ ${errorMessage}`;
+      div.appendChild(detailSpan);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.textContent = '×';
+      removeBtn.onclick = () => {
+        if (valid) {
+          filesToUpload = filesToUpload.filter(f => f !== file);
+        }
+        fileList.removeChild(div);
+        updateUploadButton();
+      };
+      div.appendChild(removeBtn);
+
+      return div;
     }
-    return null;
-  }
 
-  function createFileItem(file, valid, errorMessage = '') {
-    const div = document.createElement('div');
-    div.className = 'file-item ' + (valid ? 'valid' : 'invalid');
-
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = file.name;
-    div.appendChild(nameSpan);
-
-    const detailSpan = document.createElement('span');
-    detailSpan.style.marginLeft = '1rem';
-    if (valid) {
-      detailSpan.textContent = `✅ Valid image (${formatBytes(file.size)})`;
-    } else {
-      detailSpan.textContent = `❌ ${errorMessage}`;
+    function updateUploadButton() {
+      uploadBtn.disabled = filesToUpload.length === 0;
+      uploadBtn.textContent = `Upload Files (${filesToUpload.length})`;
     }
-    div.appendChild(detailSpan);
 
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'remove-btn';
-    removeBtn.textContent = '×';
-    removeBtn.title = 'Remove this file';
-    removeBtn.onclick = () => {
-      if (valid) {
-        filesToUpload = filesToUpload.filter(f => f !== file);
+    dropArea.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = allowedTypes.join(',');
+      input.multiple = true;
+      input.onchange = () => handleFiles(input.files);
+      input.click();
+    });
+
+    dropArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropArea.style.backgroundColor = '#e6f0ff';
+    });
+
+    dropArea.addEventListener('dragleave', () => {
+      dropArea.style.backgroundColor = '#FFFFFF';
+    });
+
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropArea.style.backgroundColor = '#FFFFFF';
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFiles(e.dataTransfer.files);
+        e.dataTransfer.clearData();
       }
-      fileList.removeChild(div);
-      updateUploadButton();
-    };
-    div.appendChild(removeBtn);
+    });
 
-    return div;
-  }
+    function handleFiles(fileListRaw) {
+      Array.from(fileListRaw).forEach(file => {
+        if (filesToUpload.includes(file)) return;
 
-  function updateUploadButton() {
-    uploadBtn.disabled = filesToUpload.length === 0;
-    uploadBtn.textContent = `Upload Files (${filesToUpload.length})`;
-  }
-
-  dropArea.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = allowedTypes.join(',');
-    input.multiple = true;
-    input.onchange = () => {
-      handleFiles(input.files);
-    };
-    input.click();
-  });
-
-  dropArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropArea.style.backgroundColor = '#e6f0ff';
-  });
-
-  dropArea.addEventListener('dragleave', () => {
-    dropArea.style.backgroundColor = '#FFFFFF';
-  });
-
-  dropArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropArea.style.backgroundColor = '#FFFFFF';
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFiles(e.dataTransfer.files);
-      e.dataTransfer.clearData();
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const error = validateFile(file, img);
+            const div = createFileItem(file, !error, error, event.target.result);
+            if (error) {
+              fileList.insertBefore(div, fileList.firstChild);
+            } else {
+              filesToUpload.push(file);
+              fileList.appendChild(div);
+            }
+            updateUploadButton();
+          };
+          img.onerror = () => {
+            const div = createFileItem(file, false, 'Invalid image.');
+            fileList.insertBefore(div, fileList.firstChild);
+            updateUploadButton();
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
     }
-  });
 
-  function handleFiles(fileListRaw) {
-    Array.from(fileListRaw).forEach(file => {
-      if (filesToUpload.includes(file)) return;
+    uploadBtn.addEventListener('click', () => {
+      if (filesToUpload.length === 0) return;
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Uploading...';
 
-      // First validate type quickly to show error ASAP
-      if (!allowedTypes.includes(file.type)) {
-        const div = createFileItem(file, false, 'Unsupported file type.');
-        fileList.insertBefore(div, fileList.firstChild);
+      setTimeout(() => {
+        filesToUpload.forEach(file => {
+          uploadedFiles.push({
+            name: file.name,
+            size: file.size
+          });
+        });
+
+        filesToUpload = [];
+        fileList.innerHTML = '';
+        updateUploadButton();
+        showUploadedFiles();
+        uploadBtn.disabled = false;
+      }, 800);
+    });
+
+    function showUploadedFiles() {
+      if (uploadedFiles.length === 0) {
+        uploadedFilesSection.style.display = 'none';
         return;
       }
+      uploadedFilesSection.style.display = 'block';
+      uploadedList.innerHTML = '';
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const error = validateFile(file, img);
-          const div = createFileItem(file, !error, error);
-          if (error) {
-            // Insert invalid files at top
-            fileList.insertBefore(div, fileList.firstChild);
-          } else {
-            filesToUpload.push(file);
-            fileList.appendChild(div);
-          }
-          updateUploadButton();
-        };
-        img.onerror = () => {
-          const div = createFileItem(file, false, 'Could not read image.');
-          fileList.insertBefore(div, fileList.firstChild);
-          updateUploadButton();
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  uploadBtn.addEventListener('click', () => {
-    if (filesToUpload.length === 0) return;
-
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = 'Uploading...';
-
-    setTimeout(() => {
-      filesToUpload.forEach(file => {
-        uploadedFiles.push({
-          name: file.name,
-          size: file.size
-        });
+      uploadedFiles.forEach((f, index) => {
+        const div = document.createElement('div');
+        div.className = 'uploaded-entry';
+        div.textContent = `${index + 1}. ${f.name} (${formatBytes(f.size)})`;
+        uploadedList.appendChild(div);
       });
-
-      filesToUpload = [];
-      fileList.innerHTML = '';
-
-      updateUploadButton();
-      showUploadedFiles();
-
-      uploadBtn.disabled = false;
-      uploadBtn.textContent = `Upload Files (${filesToUpload.length})`;
-    }, 1000);
-  });
-
-function showUploadedFiles() {
-  if (uploadedFiles.length === 0) {
-    uploadedFilesSection.style.display = 'none';
-    return;
-  }
-  uploadedFilesSection.style.display = 'block';
-  uploadedList.innerHTML = '';
-
-  uploadedFiles.forEach((f, index) => {
-    const div = document.createElement('div');
-    div.className = 'uploaded-entry';
-    div.textContent = `${index + 1}. ${f.name} (${formatBytes(f.size)})`;
-    uploadedList.appendChild(div);
-  });
-}
-</script>
-
+    }
+  </script>
 </body>
 </html>
