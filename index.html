@@ -11,11 +11,12 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background: #f9f9f9;
+      background: #FFFFFF;
       padding: 2rem;
       display: flex;
       flex-direction: column;
       align-items: center;
+      margin: 0;
     }
 
     .drop-area {
@@ -24,19 +25,21 @@
       padding: 2rem;
       text-align: center;
       color: #0073e6;
-      background: #ffffff;
+      background: #FFFFFF;
       width: 100%;
       max-width: 720px;
       cursor: pointer;
+      user-select: none;
+      box-sizing: border-box;
     }
 
     #instruction {
       background: #FFFFFF;
       color: #b33a3a;
-      font-weight: 500;
+      font-weight: 600;
       font-size: 14px;
       padding: 0.5rem 1rem;
-      margin: 0.5rem 0 1rem 0;
+      margin: 1rem 0 1.5rem 0;
       border-left: 4px solid #cc0000;
       border-radius: 4px;
       max-width: 720px;
@@ -57,9 +60,11 @@
       width: 100%;
       max-width: 720px;
       transition: background 0.3s ease;
+      box-sizing: border-box;
+      user-select: none;
     }
 
-    #upload-btn:hover {
+    #upload-btn:hover:not(:disabled) {
       background: #005bb5;
     }
 
@@ -74,10 +79,11 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      box-sizing: border-box;
     }
 
     .file-item {
-      background: #fff;
+      background: #FFFFFF;
       border-left: 4px solid transparent;
       padding: 1rem;
       border-radius: 6px;
@@ -86,6 +92,9 @@
       justify-content: space-between;
       align-items: center;
       position: relative;
+      color: #333333;
+      font-size: 14px;
+      box-sizing: border-box;
     }
 
     .file-item.valid {
@@ -94,7 +103,7 @@
 
     .file-item.invalid {
       border-left-color: #dc3545;
-      color: #b30000;
+      color: #b33a3a;
     }
 
     .remove-btn {
@@ -110,6 +119,7 @@
       position: absolute;
       top: 8px;
       right: 8px;
+      user-select: none;
     }
 
     #uploaded-files {
@@ -117,13 +127,15 @@
       width: 100%;
       max-width: 720px;
       font-size: 14px;
-      color: #333;
+      color: #333333;
       display: none;
+      box-sizing: border-box;
     }
 
     #uploaded-files h4 {
       margin-bottom: 0.5rem;
       color: #0073e6;
+      font-weight: 600;
     }
 
     .uploaded-entry {
@@ -133,19 +145,21 @@
 </head>
 <body>
 
-  <div class="drop-area" id="drop-area">
+  <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
     <small>(Only JPG, PNG, or GIF under 500 KB)</small>
   </div>
 
-  <div id="instruction">🔴 You must click ‘Upload Files’ to submit your ads.</div>
+  <div id="instruction">
+    Important: Please add <em>all</em> your files first, then click the <strong>Upload Files</strong> button below to submit your ads.
+  </div>
 
   <button id="upload-btn" disabled>Upload Files (0)</button>
 
-  <div class="file-list" id="file-list"></div>
+  <div class="file-list" id="file-list" aria-live="polite" aria-relevant="additions removals"></div>
 
-  <div id="uploaded-files">
-    <h4>✅ Uploaded Files:</h4>
+  <div id="uploaded-files" aria-live="polite">
+    <h4>Uploaded Files</h4>
     <div id="uploaded-list"></div>
   </div>
 
@@ -244,12 +258,12 @@
   });
 
   dropArea.addEventListener('dragleave', () => {
-    dropArea.style.backgroundColor = '#fff';
+    dropArea.style.backgroundColor = '#FFFFFF';
   });
 
   dropArea.addEventListener('drop', (e) => {
     e.preventDefault();
-    dropArea.style.backgroundColor = '#fff';
+    dropArea.style.backgroundColor = '#FFFFFF';
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFiles(e.dataTransfer.files);
       e.dataTransfer.clearData();
@@ -259,6 +273,8 @@
   function handleFiles(fileListRaw) {
     Array.from(fileListRaw).forEach(file => {
       if (filesToUpload.includes(file)) return;
+
+      // First validate type quickly to show error ASAP
       if (!allowedTypes.includes(file.type)) {
         const div = createFileItem(file, false, 'Unsupported file type.');
         fileList.insertBefore(div, fileList.firstChild);
@@ -272,6 +288,7 @@
           const error = validateFile(file, img);
           const div = createFileItem(file, !error, error);
           if (error) {
+            // Insert invalid files at top
             fileList.insertBefore(div, fileList.firstChild);
           } else {
             filesToUpload.push(file);
@@ -280,7 +297,7 @@
           updateUploadButton();
         };
         img.onerror = () => {
-          const div = createFileItem(file, false, 'Could not read image dimensions.');
+          const div = createFileItem(file, false, 'Could not read image.');
           fileList.insertBefore(div, fileList.firstChild);
           updateUploadButton();
         };
@@ -309,23 +326,27 @@
 
       updateUploadButton();
       showUploadedFiles();
+
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = `Upload Files (${filesToUpload.length})`;
     }, 1000);
   });
 
-  function showUploadedFiles() {
-    if (uploadedFiles.length === 0) {
-      uploadedFilesSection.style.display = 'none';
-      return;
-    }
-    uploadedFilesSection.style.display = 'block';
-    uploadedList.innerHTML = '';
-    uploadedFiles.forEach(f => {
-      const div = document.createElement('div');
-      div.className = 'uploaded-entry';
-      div.textContent = `• ${f.name} (${formatBytes(f.size)})`;
-      uploadedList.appendChild(div);
-    });
+function showUploadedFiles() {
+  if (uploadedFiles.length === 0) {
+    uploadedFilesSection.style.display = 'none';
+    return;
   }
+  uploadedFilesSection.style.display = 'block';
+  uploadedList.innerHTML = '';
+
+  uploadedFiles.forEach((f, index) => {
+    const div = document.createElement('div');
+    div.className = 'uploaded-entry';
+    div.textContent = `${index + 1}. ${f.name} (${formatBytes(f.size)})`;
+    uploadedList.appendChild(div);
+  });
+}
 </script>
 
 </body>
