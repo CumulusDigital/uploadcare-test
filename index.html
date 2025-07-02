@@ -289,26 +289,52 @@
       });
     }
 
-    uploadBtn.addEventListener('click', () => {
-      if (filesToUpload.length === 0) return;
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = 'Uploading...';
+uploadBtn.addEventListener('click', async () => {
+  if (filesToUpload.length === 0) return;
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = 'Uploading...';
 
-      setTimeout(() => {
-        filesToUpload.forEach(file => {
-          uploadedFiles.push({
-            name: file.name,
-            size: file.size
-          });
-        });
+  const proxyUrl = 'https://zapier-proxy.cumulusdigitalchicago.workers.dev/';
+  const timestamp = new Date().toISOString();
 
-        filesToUpload = [];
-        fileList.innerHTML = '';
-        updateUploadButton();
-        showUploadedFiles();
-        uploadBtn.disabled = false;
-      }, 800);
-    });
+  for (const file of filesToUpload) {
+    try {
+      // Upload to Uploadcare
+      const uploadedFile = await uploadcare.fileFrom('object', file).done();
+
+      // Get UUID
+      const uuid = uploadedFile.uuid;
+
+      // Send UUID + timestamp to Cloudflare proxy (Zapier handles the rest)
+      await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data_uuid: uuid,
+          submitted_at: timestamp,
+        }),
+      });
+
+      // Track uploaded files (for display)
+      uploadedFiles.push({
+        name: file.name,
+        size: file.size,
+      });
+    } catch (err) {
+      console.error(`Upload failed for ${file.name}:`, err);
+      // Optional: add error handling UI here
+    }
+  }
+
+  // Reset uploader UI
+  filesToUpload = [];
+  fileList.innerHTML = '';
+  updateUploadButton();
+  showUploadedFiles();
+  uploadBtn.disabled = false;
+});
 
     function showUploadedFiles() {
       if (uploadedFiles.length === 0) {
