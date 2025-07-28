@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only MP4 or MOV under 10MB)</small>
+    <small>(Only MP4 or MOV under 10MB!)</small>
   </div>
 
   <div id="instruction">
@@ -186,8 +186,8 @@
     function validateFile(file, image) {
       if (!allowedTypes.includes(file.type)) return 'Unsupported file type.';
       if (file.size > maxSize) return `File too large (${formatBytes(file.size)}).`;
-      const matches = allowedDimensions.some(([w, h]) => image.width === w && image.height === h);
-      if (!matches) return `Invalid dimensions: ${image.width}x${image.height}.`;
+      //const matches = allowedDimensions.some(([w, h]) => image.width === w && image.height === h);
+      //if (!matches) return `Invalid dimensions: ${image.width}x${image.height}.`;
       return null;
     }
 
@@ -266,7 +266,6 @@
 
         const reader = new FileReader();
         reader.onload = (event) => {
-          /* 
           const img = new Image();
           img.onload = () => {
             const error = validateFile(file, img);
@@ -280,12 +279,11 @@
             updateUploadButton();
           };
           img.onerror = () => {
-            const div = createFileItem(file, false, 'Invalid image.');
+            const div = createFileItem(file, false, 'Invalid file.');
             fileList.insertBefore(div, fileList.firstChild);
             updateUploadButton();
           };
           img.src = event.target.result;
-          */
         };
         reader.readAsDataURL(file);
       });
