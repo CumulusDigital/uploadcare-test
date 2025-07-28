@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only MP4 or MOV under 10MB!)</small>
+    <small>(Only MP4 or MOV under 10MB!!)</small>
   </div>
 
   <div id="instruction">
@@ -191,6 +191,18 @@
       return null;
     }
 
+    function Video(src, append) {
+      var v = document.createElement("video");
+      if (src != "") {
+        v.src = src;
+      }
+      if (append == true) {
+        document.body.appendChild(v);
+      }
+      return v;
+    }
+
+    
     function createFileItem(file, valid, errorMessage = '', previewSrc = '') {
       const div = document.createElement('div');
       div.className = 'file-item ' + (valid ? 'valid' : 'invalid');
@@ -266,7 +278,7 @@
 
         const reader = new FileReader();
         reader.onload = (event) => {
-          const img = new Image();
+          const img = new Video();
           img.onload = () => {
             const error = validateFile(file, img);
             const div = createFileItem(file, !error, error, event.target.result);
