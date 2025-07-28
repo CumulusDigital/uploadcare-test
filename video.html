@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only MP4 and MOV under 10MB!!)</small>
+    <small>(Only MP4 and MOV under 10MB)</small>
   </div>
 
   <div id="instruction">
@@ -183,12 +183,35 @@
       return (bytes / 1024).toFixed(0) + ' KB';
     }
 
-    function validateFile(file, image) {
+    function validateFile(file, video) {
       if (!allowedTypes.includes(file.type)) return 'Unsupported file type.';
       if (file.size > maxSize) return `File too large (${formatBytes(file.size)}).`;
-      //const matches = allowedDimensions.some(([w, h]) => image.width === w && image.height === h);
-      const matches = true;
-      if (!matches) return `Invalid dimensions: ${image.width}x${image.height}.`;
+    
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+    
+      // Check dimensions
+      const matches = allowedDimensions.some(([w, h]) => width === w && height === h);
+      if (!matches) return `Invalid dimensions: ${width}x${height}.`;
+    
+      // Check duration
+      if (video.duration > 32) return 'Video too long (${video.duration.toFixed(1)}s). Maximum is 30 seconds.';
+      if (video.duration < 15) return 'Video duration too short. Upload a 15 or 30 second ad.';
+    
+      // Check aspect ratio
+      const ratio = (width / height).toFixed(2); // Rounded ratio to 2 decimal places
+      const acceptableRatios = {
+        '1.00': 'Square (1:1)',
+        '1.78': 'Landscape (16:9)',
+        '1.33': 'Landscape (4:3)',
+        '0.56': 'Portrait (9:16)',
+        '0.75': 'Portrait (3:4)',
+      };
+    
+      if (!Object.keys(acceptableRatios).includes(ratio)) {
+        return `Unsupported aspect ratio: ${width}:${height} (${ratio}:1). Accepted: Square (1:1), Landscape (16:9 or 4:3), Portrait (9:16 or 3:4).`;
+      }
+    
       return null;
     }
 
