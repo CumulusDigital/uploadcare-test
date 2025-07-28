@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only MP4 and MOV under 10MB!)</small>
+    <small>(Only MP4 and MOV under 10MB!!)</small>
   </div>
 
   <div id="instruction">
@@ -164,7 +164,7 @@
   </div>
 
   <script>
-    const allowedTypes = ['video/mp4','video/quicktime'];
+    const allowedTypes = ['video/mp4','video/quicktime', 'video/mpeg'];
     const maxSize = 10000 * 1024;
     const requiredDimensions = [[300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]];
     const additionalDimensions = [[336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]];
@@ -256,16 +256,14 @@
     function handleFiles(fileListRaw) {
       Array.from(fileListRaw).forEach(file => {
         if (filesToUpload.includes(file)) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          //const img = new Image();
-          
+    
+        const blobUrl = URL.createObjectURL(file);
         const video = document.createElement('video');
-         
+    
         video.preload = 'metadata';
         video.onloadedmetadata = () => {
-          window.URL.revokeObjectURL(video.src);
+          URL.revokeObjectURL(blobUrl); // Clean up blob memory
+    
           const error = validateFile(file, video);
           const div = createFileItem(file, !error, error);
           if (error) {
@@ -276,19 +274,17 @@
           }
           updateUploadButton();
         };
-
-      video.onerror = () => {
-        const div = createFileItem(file, false, 'Invalid video file.');
-        fileList.insertBefore(div, fileList.firstChild);
-        updateUploadButton();
-      };
-
-      video.src = event.target.result;
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
+    
+        video.onerror = () => {
+          URL.revokeObjectURL(blobUrl);
+          const div = createFileItem(file, false, 'Invalid video file.');
+          fileList.insertBefore(div, fileList.firstChild);
+          updateUploadButton();
+        };
+    
+        video.src = blobUrl;
+      });
+    }
 
 uploadBtn.addEventListener('click', async () => {
   if (filesToUpload.length === 0) return;
