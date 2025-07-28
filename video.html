@@ -168,7 +168,7 @@
     const maxSize = 10000 * 1024;
     const requiredDimensions = [[300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]];
     const additionalDimensions = [[336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]];
-    const allowedDimensions = []; //video
+    const allowedDimensions = []; 
 
     const dropArea = document.getElementById('drop-area');
     const uploadBtn = document.getElementById('upload-btn');
@@ -266,6 +266,7 @@
 
         const reader = new FileReader();
         reader.onload = (event) => {
+          /* 
           const img = new Image();
           img.onload = () => {
             const error = validateFile(file, img);
@@ -285,6 +286,7 @@
           };
           img.src = event.target.result;
         };
+        */
         reader.readAsDataURL(file);
       });
     }
