@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only MP4 and MOV under 10MB)</small>
+    <small>(Only MP4 and MOV under 10MB!)</small>
   </div>
 
   <div id="instruction">
@@ -220,25 +220,6 @@
       return div;
     }
 
-      const detailSpan = document.createElement('span');
-      detailSpan.style.marginLeft = '1rem';
-      detailSpan.textContent = valid ? `Valid (${formatBytes(file.size)})` : `❌ ${errorMessage}`;
-      div.appendChild(detailSpan);
-
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'remove-btn';
-      removeBtn.textContent = '×';
-      removeBtn.onclick = () => {
-        if (valid) {
-          filesToUpload = filesToUpload.filter(f => f !== file);
-        }
-        fileList.removeChild(div);
-        updateUploadButton();
-      };
-      div.appendChild(removeBtn);
-
-      return div;
-    }
 
     function updateUploadButton() {
       uploadBtn.disabled = filesToUpload.length === 0;
