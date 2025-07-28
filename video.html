@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Video Upload</title>
+  <title>Video Ad Upload</title>
   <script>
     UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
   </script>
@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only MP4 or MOV under 10MB!!)</small>
+    <small>(Only MP4 and MOV under 10MB)</small>
   </div>
 
   <div id="instruction">
@@ -164,11 +164,11 @@
   </div>
 
   <script>
-    const allowedTypes = ['video/mp4', 'video/quicktime', 'application/mp4', 'video/mpeg'];
+    const allowedTypes = ['video/mp4','video/quicktime'];
     const maxSize = 10000 * 1024;
     const requiredDimensions = [[300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]];
     const additionalDimensions = [[336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]];
-    const allowedDimensions = []; 
+    const allowedDimensions = requiredDimensions.concat(additionalDimensions);
 
     const dropArea = document.getElementById('drop-area');
     const uploadBtn = document.getElementById('upload-btn');
@@ -187,38 +187,38 @@
       if (!allowedTypes.includes(file.type)) return 'Unsupported file type.';
       if (file.size > maxSize) return `File too large (${formatBytes(file.size)}).`;
       //const matches = allowedDimensions.some(([w, h]) => image.width === w && image.height === h);
-      //if (!matches) return `Invalid dimensions: ${image.width}x${image.height}.`;
+      const matches = true;
+      if (!matches) return `Invalid dimensions: ${image.width}x${image.height}.`;
       return null;
     }
 
-    function Video(src, append) {
-      var v = document.createElement("video");
-      if (src != "") {
-        v.src = src;
-      }
-      if (append == true) {
-        document.body.appendChild(v);
-      }
-      return v;
-    }
-
-    
-    function createFileItem(file, valid, errorMessage = '', previewSrc = '') {
+    function createFileItem(file, valid, errorMessage = '') {
       const div = document.createElement('div');
       div.className = 'file-item ' + (valid ? 'valid' : 'invalid');
-
+    
       const nameSpan = document.createElement('span');
       nameSpan.textContent = file.name;
       div.appendChild(nameSpan);
-
-      if (previewSrc) {
-        const img = document.createElement('img');
-        img.src = previewSrc;
-        img.alt = file.name;
-        img.style.maxHeight = '50px';
-        img.style.marginLeft = '10px';
-        div.appendChild(img);
-      }
+    
+      const detailSpan = document.createElement('span');
+      detailSpan.style.marginLeft = '1rem';
+      detailSpan.textContent = valid ? `Valid (${formatBytes(file.size)})` : `❌ ${errorMessage}`;
+      div.appendChild(detailSpan);
+    
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.textContent = '×';
+      removeBtn.onclick = () => {
+        if (valid) {
+          filesToUpload = filesToUpload.filter(f => f !== file);
+        }
+        fileList.removeChild(div);
+        updateUploadButton();
+      };
+      div.appendChild(removeBtn);
+    
+      return div;
+    }
 
       const detailSpan = document.createElement('span');
       detailSpan.style.marginLeft = '1rem';
@@ -278,28 +278,36 @@
 
         const reader = new FileReader();
         reader.onload = (event) => {
-          const img = new Video();
-          img.onload = () => {
-            const error = validateFile(file, img);
-            const div = createFileItem(file, !error, error, event.target.result);
-            if (error) {
-              fileList.insertBefore(div, fileList.firstChild);
-            } else {
-              filesToUpload.push(file);
-              fileList.appendChild(div);
-            }
-            updateUploadButton();
-          };
-          img.onerror = () => {
-            const div = createFileItem(file, false, 'Invalid file.');
+          //const img = new Image();
+          
+        const video = document.createElement('video');
+         
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(video.src);
+          const error = validateFile(file, video);
+          const div = createFileItem(file, !error, error);
+          if (error) {
             fileList.insertBefore(div, fileList.firstChild);
-            updateUploadButton();
-          };
-          img.src = event.target.result;
+          } else {
+            filesToUpload.push(file);
+            fileList.appendChild(div);
+          }
+          updateUploadButton();
         };
-        reader.readAsDataURL(file);
-      });
-    }
+
+      video.onerror = () => {
+        const div = createFileItem(file, false, 'Invalid video file.');
+        fileList.insertBefore(div, fileList.firstChild);
+        updateUploadButton();
+      };
+
+      video.src = event.target.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
 
 uploadBtn.addEventListener('click', async () => {
   if (filesToUpload.length === 0) return;
@@ -329,7 +337,7 @@ uploadBtn.addEventListener('click', async () => {
         }),
       });
 
-      // Track uploaded files (for video)
+      // Track uploaded files (for display)
       uploadedFiles.push({
         name: file.name,
         size: file.size,
