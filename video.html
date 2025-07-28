@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only MP4 and MOV under 10MB$)</small>
+    <small>(Only :15 or :30 video files in MP4 and MOV format under 10MB)</small>
   </div>
 
   <div id="instruction">
@@ -195,7 +195,7 @@
       //if (!matches) return `Invalid dimensions: ${width}x${height}.`;
     
       // Check duration
-      if (video.duration > 32) return 'Video too long (${video.duration.toFixed(1)}s). Maximum is 30 seconds.';
+      if (video.duration > 32) return 'Video duration too long. Maximum is 30 seconds.';
       if (video.duration < 15) return 'Video duration too short. Upload a 15 or 30 second ad.';
     
       // Check aspect ratio
@@ -209,7 +209,7 @@
       };
     
       if (!Object.keys(acceptableRatios).includes(ratio)) {
-        return `Unsupported aspect ratio: ${width}:${height} (${ratio}:1). Accepted: Square (1:1), Landscape (16:9 or 4:3), Portrait (9:16 or 3:4).`;
+        return `Unsupported aspect ratio. Accepted: Square (1:1), Landscape (16:9 or 4:3), Portrait (9:16 or 3:4).`;
       }
     
       return null;
@@ -225,7 +225,7 @@
     
       const detailSpan = document.createElement('span');
       detailSpan.style.marginLeft = '1rem';
-      detailSpan.textContent = valid ? `Valid (${formatBytes(file.size)})` : `❌ ${errorMessage}`;
+      detailSpan.textContent = valid ? `Valid (${formatBytes(file.size)})` : `❌  ${errorMessage}`;
       div.appendChild(detailSpan);
     
       const removeBtn = document.createElement('button');
