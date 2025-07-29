@@ -205,7 +205,7 @@ function validateFile(file, audio) {
     
       const detailSpan = document.createElement('span');
       detailSpan.style.marginLeft = '1rem';
-      detailSpan.textContent = valid ? 'Valid (${formatBytes(file.size)}, ${duration.toFixed(1)}s)' : `❌  ${errorMessage}`;
+      detailSpan.textContent = valid ? `Valid (` + formatBytes(file.size) + `, ` + duration.toFixed(1) + `s)` : `❌  ${errorMessage}`;
       div.appendChild(detailSpan);
     
       const removeBtn = document.createElement('button');
