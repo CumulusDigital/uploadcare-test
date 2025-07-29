@@ -195,7 +195,7 @@ function validateFile(file, audio) {
   return null;
 }
 
-    function createFileItem(file, valid, errorMessage = '') {
+    function createFileItem(file, valid, errorMessage = '', duration = null) {
       const div = document.createElement('div');
       div.className = 'file-item ' + (valid ? 'valid' : 'invalid');
     
@@ -268,7 +268,7 @@ function handleFiles(fileListRaw) {
       URL.revokeObjectURL(blobUrl);
 
       const error = validateFile(file, audio);
-      const div = createFileItem(file, !error, error);
+      const div = createFileItem(file, !error, error, audio.duration);
       if (error) {
         fileList.insertBefore(div, fileList.firstChild);
       } else {
