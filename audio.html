@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Video Ad Upload</title>
+  <title>Audio Ad Upload</title>
   <script>
     UPLOADCARE_PUBLIC_KEY = 'a51c89007d0bce21876e';
   </script>
@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only video files in MP4 or MOV format under 10MB)</small>
+    <small>(Only MP3 audio files under 15MB)</small>
   </div>
 
   <div id="instruction">
@@ -164,11 +164,11 @@
   </div>
 
   <script>
-    const allowedTypes = ['video/mp4','video/quicktime', 'video/mpeg'];
-    const maxSize = 10000 * 1024;
-    const requiredDimensions = [[300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]];
-    const additionalDimensions = [[336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]];
-    const allowedDimensions = requiredDimensions.concat(additionalDimensions);
+    const allowedTypes = ['audio/mpeg'];
+    const maxSize = 15000 * 1024;
+    //const requiredDimensions = [[300, 250], [728, 90], [300, 600], [160, 600], [320, 50], [320, 480]];
+    //const additionalDimensions = [[336, 280], [768, 1024], [848, 480], [1200, 1200], [900, 1600]];
+    //const allowedDimensions = requiredDimensions.concat(additionalDimensions);
 
     const dropArea = document.getElementById('drop-area');
     const uploadBtn = document.getElementById('upload-btn');
@@ -183,37 +183,17 @@
       return (bytes / 1024).toFixed(0) + ' KB';
     }
 
-    function validateFile(file, video) {
-      if (!allowedTypes.includes(file.type)) return 'Unsupported file type.';
-      if (file.size > maxSize) return `File too large (${formatBytes(file.size)}).`;
-    
-      const width = video.videoWidth;
-      const height = video.videoHeight;
-    
-      // Check dimensions
-      //const matches = allowedDimensions.some(([w, h]) => width === w && height === h);
-      //if (!matches) return `Invalid dimensions: ${width}x${height}.`;
-    
-      // Check duration
-      if (video.duration > 61) return 'Video duration too long. Maximum is 60 seconds.';
-      if (video.duration < 5) return 'Video duration too short. Upload a 15 or 30 second ad.';
-    
-      // Check aspect ratio
-      const ratio = (width / height).toFixed(2); // Rounded ratio to 2 decimal places
-      const acceptableRatios = {
-        '1.00': 'Square (1:1)',
-        '1.78': 'Landscape (16:9)',
-        '1.33': 'Landscape (4:3)',
-        '0.56': 'Portrait (9:16)',
-        '0.75': 'Portrait (3:4)',
-      };
-    
-      if (!Object.keys(acceptableRatios).includes(ratio)) {
-        return `Unsupported aspect ratio. Accepted: Square (1:1), Landscape (16:9 or 4:3), Portrait (9:16 or 3:4).`;
-      }
-    
-      return null;
-    }
+function validateFile(file, audio) {
+  if (!allowedTypes.includes(file.type)) return 'Unsupported file type.';
+  if (file.size > maxSize) return `File too large (${formatBytes(file.size)}).`;
+
+  const duration = audio.duration;
+
+  if (duration > 61) return `Audio too long. Max is 60 seconds.`;
+  if (duration < 4) return `Audio too short. Upload 15 or 30 second ad.`;
+
+  return null;
+}
 
     function createFileItem(file, valid, errorMessage = '') {
       const div = document.createElement('div');
@@ -225,7 +205,7 @@
     
       const detailSpan = document.createElement('span');
       detailSpan.style.marginLeft = '1rem';
-      detailSpan.textContent = valid ? `Valid (${formatBytes(file.size)})` : `❌  ${errorMessage}`;
+      detailSpan.textContent = valid ? 'Valid (${formatBytes(file.size)}, ${duration.toFixed(1)}s)' : `❌  ${errorMessage}`;
       div.appendChild(detailSpan);
     
       const removeBtn = document.createElement('button');
@@ -252,7 +232,7 @@
     dropArea.addEventListener('click', () => {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = allowedTypes.join(',');
+      input.accept = '.mp3';
       input.multiple = true;
       input.onchange = () => handleFiles(input.files);
       input.click();
@@ -276,38 +256,38 @@
       }
     });
 
-    function handleFiles(fileListRaw) {
-      Array.from(fileListRaw).forEach(file => {
-        if (filesToUpload.includes(file)) return;
-    
-        const blobUrl = URL.createObjectURL(file);
-        const video = document.createElement('video');
-    
-        video.preload = 'metadata';
-        video.onloadedmetadata = () => {
-          URL.revokeObjectURL(blobUrl); // Clean up blob memory
-    
-          const error = validateFile(file, video);
-          const div = createFileItem(file, !error, error);
-          if (error) {
-            fileList.insertBefore(div, fileList.firstChild);
-          } else {
-            filesToUpload.push(file);
-            fileList.appendChild(div);
-          }
-          updateUploadButton();
-        };
-    
-        video.onerror = () => {
-          URL.revokeObjectURL(blobUrl);
-          const div = createFileItem(file, false, 'Invalid video file.');
-          fileList.insertBefore(div, fileList.firstChild);
-          updateUploadButton();
-        };
-    
-        video.src = blobUrl;
-      });
-    }
+function handleFiles(fileListRaw) {
+  Array.from(fileListRaw).forEach(file => {
+    if (filesToUpload.includes(file)) return;
+
+    const blobUrl = URL.createObjectURL(file);
+    const audio = document.createElement('audio');
+
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => {
+      URL.revokeObjectURL(blobUrl);
+
+      const error = validateFile(file, audio);
+      const div = createFileItem(file, !error, error);
+      if (error) {
+        fileList.insertBefore(div, fileList.firstChild);
+      } else {
+        filesToUpload.push(file);
+        fileList.appendChild(div);
+      }
+      updateUploadButton();
+    };
+
+    audio.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      const div = createFileItem(file, false, 'Invalid audio file.');
+      fileList.insertBefore(div, fileList.firstChild);
+      updateUploadButton();
+    };
+
+    audio.src = blobUrl;
+  });
+}
 
 uploadBtn.addEventListener('click', async () => {
   if (filesToUpload.length === 0) return;
