@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only :15 or :30 video files in MP4 or MOV format under 10MB)</small>
+    <small>(Only video files in MP4 or MOV format under 10MB)</small>
   </div>
 
   <div id="instruction">
@@ -195,8 +195,8 @@
       //if (!matches) return `Invalid dimensions: ${width}x${height}.`;
     
       // Check duration
-      if (video.duration > 32) return 'Video duration too long. Maximum is 30 seconds.';
-      if (video.duration < 15) return 'Video duration too short. Upload a 15 or 30 second ad.';
+      if (video.duration > 61) return 'Video duration too long. Maximum is 60 seconds.';
+      if (video.duration < 5) return 'Video duration too short. Upload a 15 or 30 second ad.';
     
       // Check aspect ratio
       const ratio = (width / height).toFixed(2); // Rounded ratio to 2 decimal places
