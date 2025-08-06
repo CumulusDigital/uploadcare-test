@@ -151,7 +151,7 @@
   </div>
 
   <div id="instruction">
-    🔴 <strong>Don't forget to click “Upload Files” below to submit your ads.</strong>
+    🔴 <strong>Don't forget to click “Upload Files” below to submit your ads!!</strong>
   </div>
 
   <button id="upload-btn" disabled>Upload Files (0)</button>
@@ -309,6 +309,14 @@
       });
     }
 
+
+function generateCustomFileName(file, channel) {
+  const timestamp = Date.now();
+  const extension = file.name.split('.').pop();
+  const baseName = file.name.replace(/\.[^/.]+$/, "");
+  return `${channel}_${timestamp}_${baseName}.${extension}`;
+}
+    
 uploadBtn.addEventListener('click', async () => {
   if (filesToUpload.length === 0) return;
   uploadBtn.disabled = true;
@@ -322,9 +330,8 @@ uploadBtn.addEventListener('click', async () => {
   for (const file of filesToUpload) {
     try {
       // Upload to Uploadcare
-      const uploadedFile = await uploadcare.fileFrom('object', file, {
-        fileName: generateCustomFileName(file, channel)
-      }).done();
+      //const uploadedFile = await uploadcare.fileFrom('object', file, { fileName: generateCustomFileName(file, channel) }).done();
+      const uploadedFile = await uploadcare.fileFrom('object', file, { fileName: 'test.mov'; }).done();
 
       // Get UUID
       const uuid = uploadedFile.uuid;
@@ -361,12 +368,7 @@ uploadBtn.addEventListener('click', async () => {
 });
 
 
-function generateCustomFileName(file, channel) {
-  const timestamp = Date.now();
-  const extension = file.name.split('.').pop();
-  const baseName = file.name.replace(/\.[^/.]+$/, "");
-  return `${channel}_${timestamp}_${baseName}.${extension}`;
-}
+
     
     function showUploadedFiles() {
       if (uploadedFiles.length === 0) {
