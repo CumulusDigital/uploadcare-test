@@ -331,7 +331,7 @@ uploadBtn.addEventListener('click', async () => {
     try {
       // Upload to Uploadcare
       //const uploadedFile = await uploadcare.fileFrom('object', file, { fileName: generateCustomFileName(file, channel) }).done();
-      const uploadedFile = await uploadcare.fileFrom('object', file, { fileName: 'test.mov'; }).done();
+      const uploadedFile = await uploadcare.fileFrom('object', file, { fileName: 'test.mov' }).done();
 
       // Get UUID
       const uuid = uploadedFile.uuid;
