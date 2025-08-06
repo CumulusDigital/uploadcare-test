@@ -316,11 +316,15 @@ uploadBtn.addEventListener('click', async () => {
 
   const proxyUrl = 'https://zapier-proxy.cumulusdigitalchicago.workers.dev/';
   const timestamp = new Date().toISOString();
+  const urlParams = new URLSearchParams(window.location.search);
+  const channel = urlParams.get('channel') || 'Video-Main';
 
   for (const file of filesToUpload) {
     try {
       // Upload to Uploadcare
-      const uploadedFile = await uploadcare.fileFrom('object', file).done();
+      const uploadedFile = await uploadcare.fileFrom('object', file, {
+        fileName: generateCustomFileName(file, channel)
+      }).done();
 
       // Get UUID
       const uuid = uploadedFile.uuid;
@@ -356,6 +360,14 @@ uploadBtn.addEventListener('click', async () => {
   uploadBtn.disabled = false;
 });
 
+
+function generateCustomFileName(file, channel) {
+  const timestamp = Date.now();
+  const extension = file.name.split('.').pop();
+  const baseName = file.name.replace(/\.[^/.]+$/, "");
+  return `${channel}_${timestamp}_${baseName}.${extension}`;
+}
+    
     function showUploadedFiles() {
       if (uploadedFiles.length === 0) {
         uploadedFilesSection.style.display = 'none';
