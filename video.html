@@ -308,14 +308,6 @@
         video.src = blobUrl;
       });
     }
-
-
-function generateCustomFileName(file, channel) {
-  const timestamp = Date.now();
-  const extension = file.name.split('.').pop();
-  const baseName = file.name.replace(/\.[^/.]+$/, "");
-  return `${channel}_${timestamp}_${baseName}.${extension}`;
-}
     
 uploadBtn.addEventListener('click', async () => {
   if (filesToUpload.length === 0) return;
@@ -330,8 +322,11 @@ uploadBtn.addEventListener('click', async () => {
   for (const file of filesToUpload) {
     try {
       // Upload to Uploadcare
-      //const uploadedFile = await uploadcare.fileFrom('object', file, { fileName: generateCustomFileName(file, channel) }).done();
-      const uploadedFile = await uploadcare.fileFrom('object', file, { fileName: 'test.mov' }).done();
+      const uploadedFile = await uploadcare.fileFrom('object', file, {
+        metadata: {
+          channel: channel
+        }
+      }).done();
 
       // Get UUID
       const uuid = uploadedFile.uuid;
