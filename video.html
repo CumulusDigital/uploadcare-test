@@ -151,7 +151,7 @@
   </div>
 
   <div id="instruction">
-    🔴 <strong>Don't forget to click “Upload Files” below to submit your ads!!</strong>
+    🔴 <strong>Don't forget to click “Upload Files” below to submit your ads</strong>
   </div>
 
   <button id="upload-btn" disabled>Upload Files (0)</button>
@@ -322,9 +322,15 @@ uploadBtn.addEventListener('click', async () => {
   for (const file of filesToUpload) {
     try {
       // Upload to Uploadcare
+      const timestamp = Date.now(); // or use ISO date
+      const extension = file.name.split('.').pop();
+      const baseName = file.name.replace(/\.[^/.]+$/, "");
+      const newFileName = `${channel}_${timestamp}_${baseName}.${extension}`;
+      
       const uploadedFile = await uploadcare.fileFrom('object', file, {
         metadata: {
-          channel: channel
+          channel: channel,
+          newFileName: newFileName
         }
       }).done();
 
