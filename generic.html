@@ -151,7 +151,7 @@
   </div>
 
   <div id="instruction">
-    🔴 <strong>Don't forget to click “Upload Files” below to submit your ads.</strong>
+    🔴 <strong>Don't forget to click “Upload Files” below to submit your ads!!!</strong>
   </div>
 
   <button id="upload-btn" disabled>Upload Files (0)</button>
@@ -183,13 +183,13 @@
       return (bytes / 1024).toFixed(0) + ' KB';
     }
 
-function validateFile(file, audio) {
+function validateFile(file, metadata = null) {
   if (!allowedTypes.includes(file.type)) return 'Unsupported file type.';
   if (file.size > maxSize) return `File too large (${formatBytes(file.size)}).`;
   return null;
 }
 
-    function createFileItem(file, valid, errorMessage = '', duration = null) {
+    function createFileItem(file, valid, errorMessage = '') {
       const div = document.createElement('div');
       div.className = 'file-item ' + (valid ? 'valid' : 'invalid');
     
@@ -199,7 +199,7 @@ function validateFile(file, audio) {
     
       const detailSpan = document.createElement('span');
       detailSpan.style.marginLeft = '1rem';
-      detailSpan.textContent = valid ? `Valid (${formatBytes(file.size)}, ${duration.toFixed(1)}s)` : `❌  ${errorMessage}`;
+      detailSpan.textContent = valid ? `Valid (${formatBytes(file.size)})` : `❌  ${errorMessage}`;
       div.appendChild(detailSpan);
     
       const removeBtn = document.createElement('button');
@@ -252,17 +252,18 @@ function validateFile(file, audio) {
 
 function handleFiles(fileListRaw) {
   Array.from(fileListRaw).forEach(file => {
-    if (filesToUpload.includes(file)) return;
+    if (filesToUpload.includes(file)) return; // Skip if already added
 
     const blobUrl = URL.createObjectURL(file);
-    const audio = document.createElement('audio');
 
-    audio.preload = 'metadata';
-    audio.onloadedmetadata = () => {
+    // Determine file type
+    const type = file.type;
+
+    // Helper to finish processing after validation
+    const processFile = (metadata = {}) => {
       URL.revokeObjectURL(blobUrl);
-
-      const error = validateFile(file, audio);
-      const div = createFileItem(file, !error, error, audio.duration);
+      const error = validateFile(file, null);
+      const div = createFileItem(file, !error, error);
       if (error) {
         fileList.insertBefore(div, fileList.firstChild);
       } else {
@@ -272,14 +273,8 @@ function handleFiles(fileListRaw) {
       updateUploadButton();
     };
 
-    audio.onerror = () => {
-      URL.revokeObjectURL(blobUrl);
-      const div = createFileItem(file, false, 'Invalid audio file.');
-      fileList.insertBefore(div, fileList.firstChild);
-      updateUploadButton();
-    };
-
-    audio.src = blobUrl;
+    processFile();
+    
   });
 }
 
