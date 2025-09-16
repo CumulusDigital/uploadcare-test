@@ -147,7 +147,7 @@
 
   <div class="drop-area" id="drop-area" tabindex="0" role="button" aria-label="Drag and drop files here or click to select files">
     Drag & drop your files here or click to select<br />
-    <small>(Only JPG, PNG, or GIF under 500 KB)</small>
+    <small>(Only JPG or PNG under 500 KB)</small>
   </div>
 
   <div id="instruction">
@@ -164,7 +164,7 @@
   </div>
 
   <script>
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    const allowedTypes = ['image/png', 'image/jpeg'];
     const maxSize = 500 * 1024;
     const requiredDimensions = [[1200,627]];
     const additionalDimensions = [];
