@@ -279,7 +279,7 @@
 
     function handleFiles(fileListRaw) {
       Array.from(fileListRaw).forEach(file => {
-        if (filesToUpload.includes(file)) return;
+        if (filesToUpload.some(f => f.file === file)) return;
     
         const blobUrl = URL.createObjectURL(file);
         const video = document.createElement('video');
@@ -293,7 +293,12 @@
           if (error) {
             fileList.insertBefore(div, fileList.firstChild);
           } else {
-            filesToUpload.push(file);
+            filesToUpload.push({
+              file,
+              duration: Math.round(video.duration),
+              width: video.videoWidth,
+              height: video.videoHeight
+            });
             fileList.appendChild(div);
           }
           updateUploadButton();
@@ -320,7 +325,7 @@ uploadBtn.addEventListener('click', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const channel = urlParams.get('channel') || 'Social-Video';
 
-  for (const file of filesToUpload) {
+  for (const { file, duration, width, height } of filesToUpload) {
     try {
       // Upload to Uploadcare
       const timestamp = Date.now(); // or use ISO date
@@ -331,7 +336,10 @@ uploadBtn.addEventListener('click', async () => {
       const uploadedFile = await uploadcare.fileFrom('object', file, {
         metadata: {
           channel: channel,
-          newFileName: newFileName
+          newFileName: newFileName,
+          duration: duration,
+          width: width,
+          height: height
         }
       }).done();
  
