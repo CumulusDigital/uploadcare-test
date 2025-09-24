@@ -331,7 +331,7 @@ uploadBtn.addEventListener('click', async () => {
       const timestamp = Date.now(); // or use ISO date
       const extension = file.name.split('.').pop();
       const baseName = file.name.replace(/\.[^/.]+$/, "");
-      const newFileName = `${channel}_${timestamp}_${baseName}.${extension}`;
+      const newFileName = `${channel}_(${duration}s)_${timestamp}_${baseName}.${extension}`;
       
       const uploadedFile = await uploadcare.fileFrom('object', file, {
         metadata: {
