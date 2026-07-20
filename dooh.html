@@ -166,9 +166,6 @@
   <script>
     const allowedTypes = ['image/jpeg'];
     const maxSize = 500 * 1024;
-    const requiredDimensions = [[1080,1920], [1280,960], [1920,1080]];
-    const additionalDimensions = [[840,400], [1400,400], [160,600], [300,600], [728,90], [970,90], [970,250], [300,250], [300,50], [320,50]];
-    const allowedDimensions = requiredDimensions.concat(additionalDimensions);
 
     const dropArea = document.getElementById('drop-area');
     const uploadBtn = document.getElementById('upload-btn');
@@ -183,11 +180,9 @@
       return (bytes / 1024).toFixed(0) + ' KB';
     }
 
-    function validateFile(file, image) {
+    function validateFile(file) {
       if (!allowedTypes.includes(file.type)) return 'Unsupported file type.';
       if (file.size > maxSize) return `File too large (${formatBytes(file.size)}).`;
-      const matches = allowedDimensions.some(([w, h]) => image.width === w && image.height === h);
-      if (!matches) return `Invalid dimensions: ${image.width}x${image.height}.`;
       return null;
     }
 
@@ -268,7 +263,7 @@
         reader.onload = (event) => {
           const img = new Image();
           img.onload = () => {
-            const error = validateFile(file, img);
+            const error = validateFile(file);
             const div = createFileItem(file, !error, error, event.target.result);
             if (error) {
               fileList.insertBefore(div, fileList.firstChild);
