@@ -166,9 +166,12 @@
   <script>
     const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
     const maxSize = 500 * 1024;
-    const requiredDimensions = [[1080,1080],[1200,1200],[1440,1440],[1080,1350],[1200,1500],[1440,1800],[1080,1920],[720,1280],[1440,2560],[1920,1080],[1280,720],[2560,1440],[1200,628],[1080,566],[1200,630]];
-    const additionalDimensions = [];
-    const allowedDimensions = requiredDimensions.concat(additionalDimensions);
+    const allowedRatios = [
+      1 / 1,   // 1:1
+      4 / 5,   // 4:5
+      9 / 16   // 9:16
+      ]; 
+    const RATIO_TOLERANCE = 0.005;
 
     const dropArea = document.getElementById('drop-area');
     const uploadBtn = document.getElementById('upload-btn');
@@ -184,12 +187,26 @@
     }
 
     function validateFile(file, image) {
-      if (!allowedTypes.includes(file.type)) return 'Unsupported file type.';
-      if (file.size > maxSize) return `File too large (${formatBytes(file.size)}).`;
-      const matches = allowedDimensions.some(([w, h]) => image.width === w && image.height === h);
-      if (!matches) return `Invalid dimensions: ${image.width}x${image.height}.`;
-      return null;
-    }
+  if (!allowedTypes.includes(file.type)) {
+    return 'Unsupported file type.';
+  }
+
+  if (file.size > maxSize) {
+    return `File too large (${formatBytes(file.size)}).`;
+  }
+
+  const ratio = image.width / image.height;
+
+  const validRatio = allowedRatios.some(
+    allowed => Math.abs(ratio - allowed) < RATIO_TOLERANCE
+  );
+
+  if (!validRatio) {
+    return `Invalid aspect ratio (${image.width}×${image.height}). Accepted ratios are 1:1, 4:5, or 9:16.`;
+  }
+
+  return null;
+}
 
     function createFileItem(file, valid, errorMessage = '', previewSrc = '') {
       const div = document.createElement('div');
